@@ -1,6 +1,5 @@
 # VectorHub Client Setup Guide
 
-
 This guide provides instructions to set up and run the `VectorHub` Docker Compose environment using the provided `vectorhub.tar` image file after cloning the repository.
 
 ## Prerequisites
@@ -19,16 +18,26 @@ This guide provides instructions to set up and run the `VectorHub` Docker Compos
    cd Vectorhub-client
    ```
 
-2. **Load the Docker Image**
+2. **Download the Docker Image**
 
-   Download the `vectorhub.tar` file and then load it into Docker using the following command:
+   Download the `vectorhub.tar` file from the latest GitHub release:
+   [Download vectorhub.tar](https://github.com/otimizai-tech/Vectorhub-client/releases/download/v0.2/vectorhub.tar)
+
+   Alternatively, you can use the command line to download the file directly:
+   ```bash
+   wget https://github.com/otimizai-tech/Vectorhub-client/releases/download/v0.2/vectorhub.tar
+   ```
+
+3. **Load the Docker Image**
+
+   Once the `vectorhub.tar` file is downloaded, load it into Docker using the following command:
    ```bash
    docker load -i vectorhub.tar
    ```
 
    This command imports the `otimizai/vectorhub-client:latest` image into your Docker environment.
 
-3. **Verify the Image**
+4. **Verify the Image**
 
    Confirm that the image has been successfully loaded by listing your Docker images:
    ```bash
@@ -37,7 +46,7 @@ This guide provides instructions to set up and run the `VectorHub` Docker Compos
 
    You should see an image named `otimizai/vectorhub-client` with the `latest` tag in the list.
 
-4. **Run the Docker Compose Setup**
+5. **Run the Docker Compose Setup**
 
    Start the complete application stack using Docker Compose with the following command:
    ```bash
@@ -46,7 +55,7 @@ This guide provides instructions to set up and run the `VectorHub` Docker Compos
 
    This command will launch all the services defined in your `docker-compose.yml` file, including Redis, EdgeDB, Qdrant, and the VectorHub API.
 
-5. **Access the Application**
+6. **Access the Application**
 
    Once the services are up and running, you can access the VectorHub application at:
    ```
@@ -67,7 +76,8 @@ This command will gracefully stop and remove all containers defined in your Dock
 ## Troubleshooting
 
 - **Port Conflicts**: If you encounter port conflicts, make sure that the ports specified in your `.env` file are not being used by other services on your machine.
-- **Image Not Found**: If Docker Compose fails to find the image, ensure that you have successfully loaded the `vectorhub.tar` file as described in Step 2.
+- **Image Not Found**: If Docker Compose fails to find the image, ensure that you have successfully downloaded and loaded the `vectorhub.tar` file as described in Steps 2 and 3.
+
 
 
 ---
@@ -371,6 +381,3 @@ curl -X POST http://0.0.0.0:8081/chat \
 - The `chunks` parameter is a list that contains data structured for different storage types (`qdrant_payloads` and `redis_payloads`).
 - The `system_metadata` allows for tagging and controlling the status of the inserted chunks with the same schema of `Response Schema get_chunks`.
 
-# Vectorhub-client
-# Vectorhub-client
-# Vectorhub-client
