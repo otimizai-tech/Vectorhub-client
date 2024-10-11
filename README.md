@@ -82,6 +82,21 @@ This command will gracefully stop and remove all containers defined in your Dock
 
 ---
 
+# API
+
+**POST** `/<path>`
+
+Use `Authorization: Bearer <TOKEN>`, where the token is generated in the application interface at `http://<appendpoint>/admin`. For security reasons, you must set a unique password in your `.env` file before accessing this endpoint.
+
+### Important Note:
+- **Ensure that you **change the default admin password** in the `.env` file before using `docker compose up`, use this feature to avoid unauthorized access. **
+
+To generate the token:
+1. Go to `http://<appendpoint>/admin`.
+2. Use the admin password specified in your `.env` file.
+3. Generate the token to use with your API requests.
+
+---
 
 # `get_chunks` API Documentation
 
@@ -92,6 +107,7 @@ The `get_chunks` API is used to retrieve chunks of data based on the given param
 ## Endpoint
 
 **POST** `/chat`
+use Authorization: Bearer <TOKEN>, where the token generated is generated in the application http://<appendpoint>/admin - pass the password admin, and generate the token
 
 ### Request Payload
 
