@@ -25,7 +25,7 @@ This guide provides instructions to set up and run the `VectorHub` Docker Compos
 
    Alternatively, you can use the command line to download the file directly:
    ```bash
-   wget https://github.com/otimizai-tech/Vectorhub-client/releases/download/v0.2.1/vectorhub.tar
+   wget https://github.com/otimizai-tech/Vectorhub-client/releases/download/v0.2.2/vectorhub.tar
    ```
 
 3. **Load the Docker Image**
