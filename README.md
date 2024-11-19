@@ -84,316 +84,89 @@ This command will gracefully stop and remove all containers defined in your Dock
 
 # API
 
-**POST** `/<path>`
+## Updated Workflow for Data Management with Qdrant
 
-Use `Authorization: Bearer <TOKEN>`, where the token is generated in the application interface at `http://<appendpoint>/admin`. For security reasons, you must set a unique password in your `.env` file before accessing this endpoint.
+## Querying Data with Qdrant
 
-### Important Note:
-- **Ensure that you **change the default admin password** in the `.env` file before using `docker compose up`, use this feature to avoid unauthorized access. **
+### **Group Search by X_ID**
+To perform searches that group results by `system_metadata.X_ID`, you can use the group query endpoint.
 
-To generate the token:
-1. Go to `http://<appendpoint>/admin`.
-2. Use the admin password specified in your `.env` file.
-3. Generate the token to use with your API requests.
+#### Request:
+**Endpoint:**
+```bash
+POST http://localhost:6333/collections/chunks/points/query/groups (using qdrant api)
+POST http://localhost:8081/qdrant?path=collections/chunks/points/query/groups (or using vectorhub proxy api)
+```
+
+**Example Payload:**
+```json
+{
+  "query": [0.11, 0.22, 0.33],
+  "group_by": "system_metadata.X_ID",
+  "limit": 3,
+  "group_size": 2,
+  "with_lookup": {
+    "collection": "X_ID",
+    "with_payload": ["title", "text"],
+    "with_vectors": false
+  }
+}
+```
+### **Key Parameters**
+- **`query`**: The vector used for the search.
+- **`group_by`**: Field used for grouping results (e.g., `system_metadata.X_ID`).
+- **`limit`**: Number of groups to return.
+- **`group_size`**: Number of points in each group.
+- **`with_lookup`**: Specifies additional data to retrieve (e.g., payload or vectors).
+
+
+**Example Response:**
+```
+{
+    "result": {
+        "groups": [
+            {
+                "id": 1,
+                "hits": [
+                    { "id": 0, "score": 0.91 },
+                    { "id": 1, "score": 0.85 }
+                ],
+                "lookup": {
+                    "id": 1,
+                    "payload": {
+                        "title": "Document A",
+                        "text": "This is document A"
+                    }
+                }
+            },
+            {
+                "id": 2,
+                "hits": [
+                    { "id": 1, "score": 0.85 }
+                ],
+                "lookup": {
+                    "id": 2,
+                    "payload": {
+                        "title": "Document B",
+                        "text": "This is document B"
+                    }
+                }
+            }
+        ]
+    },
+    "status": "ok",
+    "time": 0.001
+}
+```
+### **Key Parameters**
+- **`lookup`**: The data inside the collection X_ID
+- **`groups`**: Groups based in the unique id in X_ID.
+- **`hits`**: id fo the vector and the respective score based in the query vector.
+
 
 ---
 
-# `get_chunks` API Documentation
 
-## Overview
-
-The `get_chunks` API is used to retrieve chunks of data based on the given parameters. It is intended to filter and query specific pieces of content from the database using various filters and query options.
-
-## Endpoint
-
-**POST** `/chat`
-use Authorization: Bearer <TOKEN>, where the token generated is generated in the application http://<appendpoint>/admin - pass the password admin, and generate the token
-
-### Request Payload
-
-The request payload should be in JSON format and contain the function name (`fun`) and a `data` object with the relevant parameters.
-
-```json
-{
-  "fun": "get_chunks",
-  "data": {
-    "main_content": "<string>",
-    "query_user": "<string>",
-    "collection_name": "<string>",
-    "filter": [
-      ["metadata.tags", "value"]
-    ],
-    "limit": <int>,
-    "with_payload": <bool>,
-    "return_adj": <bool>,
-    "return_id": <bool>,
-    "return_Xid": <bool>,
-    "join_id_Xid_null": <bool>,
-    "return_metadata_Xid": <bool>
-  }
-}
-```
-
-### Parameters
-
-| Parameter             | Type                    | Required | Default | Description                                                                                                                                                                                                                                                                    |
-| --------------------- | ----------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `main_content`        | `string`                | Yes      | -       | The main content to retrieve the chunks from.                                                                                                                                                                                                                                  |
-| `query_user`          | `string`                | Yes      | -       | The user's query used to determine the chunk.                                                                                                                                                                                                                                  |
-| `collection_name`     | `string`                | No       | ""      | The name of the collection to query from.                                                                                                                                                                                                                                      |
-| `filter`              | `list[tuple(str, str)]` | No       | `None`  | A list of filters to apply to the payload, e.g., `[ ("metadata.tags", "value") ]`.                                                                                                                                                                                             |
-| `limit`               | `int`                   | No       | `4`     | The maximum number of chunks to return.                                                                                                                                                                                                                                        |
-| `with_payload`        | `bool`                  | No       | `True`  | Whether to include payload data in the response.                                                                                                                                                                                                                               |
-| `return_adj`          | `bool`                  | No       | `False` | Whether to return adjacent content. If there is a connection, this will contain the UUID of each connection along with the score. If there is no connection, only the `id` with `False` for `Xid` will be returned in the list of results.                                     |
-| `return_id`           | `bool`                  | No       | `False` | Whether to return the unique identifier of the chunk.                                                                                                                                                                                                                          |
-| `return_Xid`          | `bool`                  | No       | `False` | Whether to return the Xid associated with the chunk.                                                                                                                                                                                                                           |
-| `join_id_Xid_null`    | `bool`                  | No       | `True`  | Whether to return all entries in the `Xid` dictionary if `adj` has `False` for the associated `Xid`. This means that when there is no valid connection (`Xid` is `False`), the corresponding entries from `id` and `Xid` are joined to provide more comprehensive information. |
-| `return_metadata_Xid` | `bool`                  | No       | `False` | Whether to return metadata related to Xid.                                                                                                                                                                                                                                     |
-
-### Example Request
-
-Here is an example of how to make a POST request to the `get_chunks` API using HTTPX:
-
-```json
-curl -X POST http://0.0.0.0:8081/chat \
--H "Content-Type: application/json" \
--d '{
-  "fun": "get_chunks",
-  "data": {
-    "main_content": "pageContent",
-    "query_user": "quais os tipos de consorcio ?",
-    "collection_name": "teste",
-    "filter": [
-      ["system_metadata.tags_name", ["FAQ"]],
-      ["system_metadata.tags_name", ["new"]]
-      ],
-    "limit": 1,
-    "with_payload": ["pageContent"],
-    "return_adj": true,
-    "return_id": true,
-    "return_Xid": true,
-    "return_metadata_Xid": true,
-    "join_id_Xid_null": true
-  }
-}'
-```
-
-### Example Response
-
-The response will contain the chunks of data retrieved based on the parameters provided.
-
-```json
-{
-  "status": true,
-  "message": "query: quais os tipos de consorcio ?",
-  "data": [
-    {
-      "adj": [
-        {
-          "score": 0.7682048,
-          "id/XiD": [
-            "a55970be-8745-11ef-ae83-af3dcb07e505",
-            false
-          ]
-        }
-      ],
-      "id": {
-        "a55970be-8745-11ef-ae83-af3dcb07e505": {
-          "pageContent": "5.  Quais são os tipos de consórcio disponíveis?\n\n  consórcio de bens móveis, consórcio de imóveis e serviços. ",
-          "system_metadata": {
-            "X_ID": []
-          }
-        }
-      },
-      "Xid": {
-        "a55970be-8745-11ef-ae83-af3dcb07e505": {
-          "pageContent": "5.  Quais são os tipos de consórcio disponíveis?\n\n  consórcio de bens móveis, consórcio de imóveis e serviços. ",
-          "system_metadata": {
-            "X_ID": []
-          }
-        }
-      }
-    }
-  ]
-}
-```
-
-### Response Schema
-
-Below is a schema of the response to help understand its structure:
-
-- `status` (boolean): Indicates whether the request was successfully processed.
-- `message` (string): Provides additional context about the query performed.
-- `data` (list of objects): Contains the chunks and their relevant metadata.
-  - Each object in `data`:
-    - `adj` (list of objects): Represents adjacent content.
-      - Each object in `adj`:
-        - `score` (float): The score associated with the adjacent connection.
-        - `id/XiD` (list): A list containing the ID and a boolean indicating if `Xid` is present. If `Xid` is `False`, only the ID is returned.
-    - `id` (object): Represents the main identifier (may be empty if no valid connection).
-    - `Xid` (object): Contains the detailed information related to `Xid`.
-      - Each key in `Xid` is an ID (UUID), with the value being an object containing:
-        - `pageContent` (string): The content of the page.
-        - `system_metadata` (object): Metadata related to the content.
-          - `X_ID` (list): A list of additional metadata identifiers.
-          - `as_X_ID` (list): A list of associated X\_IDs.
-          - `dashboard_on` (list): Dashboard information.
-          - `database_name` (list): Names of associated databases.
-          - `filename` (string): The filename of the content.
-          - `isEnabled` (boolean): Whether the content is isEnabled.
-          - `path` (string): The path to the content.
-          - `tags_name` (list of strings): Tags associated with the content.
-        - `metadata` (object): Contains the metadata provided by the user.
-
-### Notes
-
-- The `filter` parameter accepts a list of tuples to filter results based on metadata tags or other properties.
-- Depending on the boolean flags (`with_payload`, `return_adj`, etc.), different data will be included in the response.
-- The `status` field in the response indicates whether the request was successfully processed.
-- The `message` field provides additional context about the query performed.
-- The `data` field contains the chunks and their relevant metadata, including `adj` (adjacent content), `id/XiD` pairs, and detailed content with metadata.
-
-
-
-----
-
-
-# `insert_chunks` API Documentation
-
-## Overview
-
-The `insert_chunks` API is used to insert chunks of data into a specified collection. The data is divided into multiple payloads, which can be stored in different storage services (e.g., Qdrant, Redis). This API allows adding content to a collection along with system metadata.
-
-## Endpoint
-
-**POST** `/chat`
-
-### Request Payload
-
-The request payload should be in JSON format and contain the function name (`fun`) and a `data` object with the relevant parameters.
-
-```json
-{
-  "fun": "insert_chunks",
-  "data": {
-    "chunks": [
-      {
-        "qdrant_payloads": [
-          {
-            "id": "<string>",
-            "payload": {
-              "X_ID: [<string>],
-              "metadata": {<object>},
-              "pageContent": "<string>"
-            }
-          }
-        ],
-        "redis_payloads": [
-          {
-            "id": "<string>",
-            "payload": "<string>"
-          }
-        ]
-      }
-    ],
-    "collection_id": "<string>",
-    "system_metadata": {
-      "isEnabled": <bool>,
-      "tags": [<string>]
-    }
-  }
-}
-```
-
-### Parameters
-
-| Parameter         | Type           | Required | Description                                                                                                       |
-| ----------------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
-| `chunks`          | `list[object]` | Yes      | A list of chunks to be inserted. Each chunk contains payloads for different storage services, including metadata. |
-| `collection_id`   | `string`       | Yes      | The ID of the collection where the chunks should be inserted.                                                     |
-| `system_metadata` | `object`       | No       | Metadata about the insertion, including tags and status.                                                          |
-
-#### Chunk Schema
-
-- Each item in `chunks` contains:
-  - `qdrant_payloads` (list of objects): Payloads specific to Qdrant storage.
-    - `id` (string): The unique identifier for the payload.
-    - `payload` (object):
-      - `X_ID` (string): A unique identifier for metadata linkage.
-      - `metadata` (object): Contains additional metadata.
-      - `pageContent` (string): The content to be inserted.
-  - `redis_payloads` (list of objects): Payloads specific to Redis storage as X_ID.
-    - `id` (string): The unique identifier for the payload.
-    - `payload` (string): The content to be inserted.
-
-#### System Metadata Schema
-
-- **`system_metadata`** object contains metadata attributes related to the management and classification of chunks being inserted into databases like Qdrant and Redis. Each field serves a specific role in organizing and controlling the data:
-
-  - **`X_ID`** (`list of strings`): Represents a list of unique identifiers associated with the chunks or data entries.
-  - **`as_X_ID`** (`list of strings`): Contains alternate or alias identifiers related to the `X_ID`.
-  - **`dashboard_on`** (`list of strings`): Indicates the dashboards or views where these data entries are actively displayed or monitored.
-  - **`database_name`** (`list of strings`): Names of the databases where the chunks are stored or referenced.
-  - **`filename`** (`string`): The name of the file associated with the data entry or chunk.
-  - **`isEnabled`** (`boolean`): A flag indicating if the system is enabled for handling the specific chunks being inserted into the databases.
-  - **`path`** (`string`): The file path or directory location relevant to the chunk or data entry.
-  - **`tags_name`** (`list of strings`): Tags used to classify and categorize the inserted chunks for easier organization and retrieval.
-
-
-```json
-{
-    "system_metadata": {
-        "X_ID": [<string>],
-        "as_X_ID": [<string>],
-        "dashboard_on": [<string>],
-        "database_name": [<string>],
-        "filename": <string>,
-        "isEnabled": <bool>,
-        "path": <string>,
-        "tags_name": [<string>],
-    }
-}
-```
-
-
-### Example Request
-
-Here is an example of how to make a POST request to the `insert_chunks` API using cURL:
-
-```json
-curl -X POST http://0.0.0.0:8081/chat \
--H "Content-Type: application/json" \
--d '{
-  "fun": "insert_chunks",
-  "data": {
-    "chunks": [
-      {
-        "qdrant_payloads": [
-          {
-            "id": "dca46ca0-ab49-4b35-9653-dd8813e5b7f6",
-            "payload": {
-              "X_ID": "c65bf39d-d5ee-4672-abf8-2a807f5fb90d",
-              "metadata": {},
-              "pageContent": "# CONSTRUÇÃO\n## Posso usar meu FGTS para comprar um imóvel. Como funciona?\n### Processo de Utilização do FGTS:\n#### Análise e Liberação:\n\nApós a análise e verificação de que todos os requisitos foram atendidos, faremos a liberação do FGTS junto à Caixa Econômica Federal. A liberação será efetuada após a assinatura do cliente nos Termos Específicos."
-            }
-          }
-        ],
-        "redis_payloads": [
-          {
-            "id": "c65bf39d-d5ee-4672-abf8-2a807f5fb90d",
-            "payload": "# CONSTRUÇÃO\n## Posso usar meu FGTS para comprar um imóvel. Como funciona?\n### Processo de Utilização do FGTS:\n#### Análise e Liberação:\n\nApós a análise e verificação de que todos os requisitos foram atendidos, faremos a liberação do FGTS junto à Caixa Econômica Federal. A liberação será efetuada após a assinatura do cliente nos Termos Específicos."
-          }
-        ]
-      }
-    ],
-    "collection_id": "82544898-859a-11ef-b6f9-dffb34b23632",
-    "system_metadata": {"isEnabled": false, "tags": ["api"]}
-  }
-}'
-```
-
-### Notes
-
-- The `chunks` parameter is a list that contains data structured for different storage types (`qdrant_payloads` and `redis_payloads`).
-- The `system_metadata` allows for tagging and controlling the status of the inserted chunks with the same schema of `Response Schema get_chunks`.
+## Next Steps
+- **Insert Data/ sync with vectorhub**
 

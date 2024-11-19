@@ -184,7 +184,9 @@ module default {
     }
 
     required name: str;
-    path: str;
+    path:= {
+      ((select .<files[is Folder].path limit 1) ++ "/" ++ .name)
+    };
     description: str;
 
 
@@ -264,9 +266,7 @@ module default {
 
     access policy acess_collection_u
     allow update
-    using (
-      global current_collection_id ?= assert_single(.<databases[is Collection].id)
-      or global current_collection_name ?= assert_single(.<databases[is Collection].name));
+    using (true);
 
     access policy acess_collection_i
     allow insert

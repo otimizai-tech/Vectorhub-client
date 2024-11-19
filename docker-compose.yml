@@ -1,14 +1,4 @@
 services:
-  redis:
-    image: "redis/redis-stack:latest"
-    ports:
-      - "${REDIS_PORT}:6379"
-      - "8001:8001"
-    volumes:
-      - ./endpoint_data/redis_storage:/data
-    networks:
-      - internal-network
-
   edgedb:
     image: edgedb/edgedb:5
     environment:
@@ -31,7 +21,7 @@ services:
     ports:
       - "${QDRANT_PORT}:6333"
     volumes:
-      - ./endpoint_data/qdrant_storage:/qdrant/storage
+      - ./db/qdrant:/qdrant/storage
     networks:
       - internal-network
 
@@ -42,7 +32,6 @@ services:
     volumes:
       - ./__workdir__:/app/__workdir__
     depends_on:
-      - redis
       - qdrant
       - edgedb
     networks:
@@ -51,11 +40,14 @@ services:
     env_file:
       - .env
     environment:
-      TYPE_ENV: ${TYPE_ENV}  # Use the variable from .env
-      REDIS_HOST: redis
-      QDRANT_HOST: qdrant
-      EDGEDB_HOST: edgedb
+      TYPE_ENV: ${TYPE_ENV}
       SECRET_KEY_ADMIN: ${SECRET_KEY_ADMIN}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT}
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: ${QDRANT_PORT}
+      EDGEDB_HOST: edgedb
+      EDGEDB_PORT: ${EDGEDB_PORT}
 
 
 
