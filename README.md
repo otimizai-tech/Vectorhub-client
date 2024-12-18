@@ -138,8 +138,9 @@ Content-Type: application/json
     "limit_w_XID": 2,
     "limit_w_hits": 15,
     "query_filter": {
-        "field": "status",
-        "value": "active"
+        "must": [
+            { "key": "system_metadata.tags_name", "match": { "value": "contract" }}
+        ]
     }
 }
 ```
