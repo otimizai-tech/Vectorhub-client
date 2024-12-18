@@ -82,91 +82,295 @@ This command will gracefully stop and remove all containers defined in your Dock
 
 ---
 
-# API
+# **API Documentation for POST /query**
 
-## Updated Workflow for Data Management with Qdrant
 
-## Querying Data with Qdrant
+## **Endpoint**
+**`POST /query`**
 
-### **Group Search by X_ID**
-To perform searches that group results by `system_metadata.X_ID`, you can use the group query endpoint.
+### **Authorization**
+The endpoint requires an **Authorization** header with a valid Bearer token. Example:
 
-#### Request:
-**Endpoint:**
-```bash
-POST http://localhost:6333/collections/chunks/points/query/groups (using qdrant api)
-POST http://localhost:8081/qdrant?path=collections/chunks/points/query/groups (or using vectorhub proxy api)
+```http
+Authorization: Bearer {TOKEN}
 ```
 
-**Example Payload:**
+
+## **Request Body**
+The request body should be in JSON format. Below are the variables accepted:
+
+### **Variables**
+
+| **Variable**       | **Type**   | **Required** | **Default** | **Description**                                                                                   |
+|---------------------|------------|--------------|-------------|---------------------------------------------------------------------------------------------------|
+| `query`            | `string`   | Yes          | `None`      | The search query string used to perform the main operation.                                      |
+| `collection_name`  | `string`   | Yes          | `None`      | The name of the collection to query from.                                                       |
+| `with_payload`     | `boolean`  | No           | `True`      | Determines if the response should include additional payloads associated with the query results. |
+| `score_threshold`  | `float`    | No           | `None`      | The minimum score a result must achieve to be included in the response.                         |
+| `limit_wo_XID`     | `integer`  | No           | `1`         | The maximum number of results to return when the `X_ID` attribute is not present in the query.  |
+| `limit_w_XID`      | `integer`  | No           | `1`         | The maximum number of results to return when the `X_ID` attribute is present in the query.      |
+| `limit_w_hits`     | `integer`  | No           | `10`        | The maximum number of results to return when the query matches items based on hits.             |
+| `query_filter`     | `object`   | No           | `None`      | Additional filtering criteria applied to the query to refine the results.                       |
+
+---
+
+
+
+
+## **Example Request**
+
+### **Request Header**
+```http
+POST {endpoint}/query 
+Authorization: Bearer YOUR_TOKEN
+Content-Type: application/json
+```
+
+
+### **Request Body**
 ```json
 {
-  "query": [0.11, 0.22, 0.33],
-  "group_by": "system_metadata.X_ID",
-  "limit": 3,
-  "group_size": 2,
-  "with_lookup": {
-    "collection": "X_ID",
-    "with_payload": ["title", "text"],
-    "with_vectors": false
+    "query": "teste",
+    "collection_name": "teste",
+    "with_payload": true,
+    "score_threshold": 0.5,
+    "limit_wo_XID": 5,
+    "limit_w_XID": 2,
+    "limit_w_hits": 15,
+    "query_filter": {
+        "field": "status",
+        "value": "active"
+    }
+}
+```
+
+
+### **Result**
+
+When the `/query` endpoint is called successfully, it returns a structured JSON response. This document provides a detailed explanation of the response fields and their significance.
+
+---
+
+### **Response Structure**
+
+```json
+{
+  "status": true,
+  "message": "query: teste",
+  "data": {
+    "states": { ... },
+    "refs": { ... },
+    "edges": [ ... ]
   }
 }
 ```
-### **Key Parameters**
-- **`query`**: The vector used for the search.
-- **`group_by`**: Field used for grouping results (e.g., `system_metadata.X_ID`).
-- **`limit`**: Number of groups to return.
-- **`group_size`**: Number of points in each group.
-- **`with_lookup`**: Specifies additional data to retrieve (e.g., payload or vectors).
 
+---
 
-**Example Response:**
-```
+### **Top-Level Fields**
+
+| **Field**    | **Type**   | **Description**                                                                                           |
+|--------------|------------|-----------------------------------------------------------------------------------------------------------|
+| `status`     | `boolean`  | Indicates whether the query was processed successfully.                                                   |
+| `message`    | `string`   | Provides context or feedback about the query operation, typically echoing the query or describing errors. |
+| `data`       | `object`   | Contains the core results of the semantic query, including `states`, `refs`, and `edges`.                |
+
+---
+
+### **Detailed Explanation of `data`**
+
+#### **1. `states`**
+- **Type:** Object
+- **Description:** Contains the actual results of the semantic search.
+- **Structure:** 
+  - Each key in `states` represents an index (based on `refs`).
+  - Each index contains:
+    - **`payload`**: Includes `metadata` and `pageContent`—the retrieved text or associated content.
+    - **`system_metadata`**: Additional details about the file or system context, such as:
+      - `X_ID`: UUIDs related to the content.
+      - `path`: The file or document path.
+      - `filename`: Name of the file.
+      - `isEnabled`: Indicates if the result is currently active or valid.
+      - `tags_name`: Tags categorizing the content.
+      - `database_name`: Related database names.
+- **Example:**
+  ```json
+  "states": {
+    "0": {
+      "payload": {
+        "metadata": {},
+        "pageContent": "LIBERAÇÃO Cadastral..."
+      },
+      "system_metadata": {
+        "X_ID": ["65bdf61a-bcaf-11ef-8362-67a57d644ab2"],
+        "path": "/root/Passo_á_Passo_Imovel_Atualizado.md",
+        "filename": "Passo_á_Passo_Imovel_Atualizado.md",
+        "isEnabled": false,
+        "tags_name": ["new", "general", "temp"],
+        "database_name": ["redis"]
+      }
+    }
+  }
+  ```
+
+---
+
+#### **2. `refs`**
+- **Type:** Object
+- **Description:** Provides an index-to-UUID mapping for easier reference and interpretation of results.
+- **Example:**
+  ```json
+  "refs": {
+    "65c073e0-bcaf-11ef-8362-836697a80014": 0,
+    "65be218a-bcaf-11ef-8362-97215ca72835": 1
+  }
+  ```
+- **Usage:** Each UUID corresponds to an index in `states`, allowing you to locate detailed results.
+
+---
+
+#### **3. `edges`**
+- **Type:** Array
+- **Description:** Represents connections between results (as indexed in `refs`) and their semantic relationships.
+- **Structure:**
+  - Each edge is represented as `[score, from, to]`:
+    - **`score`**: Semantic similarity value (higher indicates closer match).
+    - **`from`**: Index of the source node.
+    - **`to`**: Index of the target node.
+- **Example:**
+  ```json
+  "edges": [
+    [0.07045968, 1, 0],
+    [0.06461066, 2, 0]
+  ]
+  ```
+- **Usage:** Used to analyze relationships between results, particularly when clustering or exploring related items.
+
+---
+
+### **Example of Full Response**
+
+```json
 {
-    "result": {
-        "groups": [
-            {
-                "id": 1,
-                "hits": [
-                    { "id": 0, "score": 0.91 },
-                    { "id": 1, "score": 0.85 }
-                ],
-                "lookup": {
-                    "id": 1,
-                    "payload": {
-                        "title": "Document A",
-                        "text": "This is document A"
-                    }
-                }
-            },
-            {
-                "id": 2,
-                "hits": [
-                    { "id": 1, "score": 0.85 }
-                ],
-                "lookup": {
-                    "id": 2,
-                    "payload": {
-                        "title": "Document B",
-                        "text": "This is document B"
-                    }
-                }
-            }
-        ]
+  "status": true,
+  "message": "query: teste",
+  "data": {
+    "states": {
+      "0": {
+        "payload": {
+          "metadata": {},
+          "pageContent": "LIBERAÇÃO Cadastral..."
+        },
+        "system_metadata": {
+          "X_ID": ["65bdf61a-bcaf-11ef-8362-67a57d644ab2"],
+          "path": "/root/Passo_á_Passo_Imovel_Atualizado.md",
+          "filename": "Passo_á_Passo_Imovel_Atualizado.md",
+          "isEnabled": false,
+          "tags_name": ["new", "general", "temp"],
+          "database_name": ["redis"]
+        }
+      }
     },
-    "status": "ok",
-    "time": 0.001
+    "refs": {
+      "65c073e0-bcaf-11ef-8362-836697a80014": 0,
+      "65be218a-bcaf-11ef-8362-97215ca72835": 1
+    },
+    "edges": [
+      [0.07045968, 1, 0],
+      [0.06461066, 2, 0]
+    ]
+  }
 }
 ```
-### **Key Parameters**
-- **`lookup`**: The data inside the collection X_ID
-- **`groups`**: Groups based in the unique id in X_ID.
-- **`hits`**: id fo the vector and the respective score based in the query vector.
+
+---
+
+### **Summary**
+
+- **`states`**: The primary search results with detailed information about each result.
+- **`refs`**: A mapping between UUIDs and their indices in `states`.
+- **`edges`**: Semantic connections between results, defined by similarity scores and indices.
+
+
 
 
 ---
 
 
-## Next Steps
-- **Insert Data/ sync with vectorhub**
+## Filter 
+
+The available filtering features can be applied to both `system_metadata` and `metadata`. 
+
+- **`system_metadata`**: These are default, predefined variables provided by VectorHub, offering standardized attributes for filtering.  
+- **`metadata`**: These are custom variables specified by the user, allowing for tailored filtering criteria based on user-defined data within VectorHub. 
+
+
+
+### **Available Fields in `system_metadata`**
+
+
+
+| **Field**           | **Type**    | **Description**                                                                            | **Example**                                 |
+|----------------------|------------|--------------------------------------------------------------------------------------------|---------------------------------------------|
+| `X_ID`              | `array`    | List of UUIDs associated with the result.                                                  | `["65bdf61a-bcaf-11ef-8362-67a57d644ab2"]` |
+| `path`              | `string`   | File or document path where the result is stored.                                          | `"/root/Passo_á_Passo_Imovel_Atualizado.md"` |
+| `filename`          | `string`   | Name of the file containing the result.                                                   | `"Passo_á_Passo_Imovel_Atualizado.md"`      |
+| `isEnabled`         | `boolean`  | Indicates if the result is active or valid.                                                | `false`                                     |
+| `tags_name`         | `array`    | List of tags categorizing the content.                                                     | `["new", "general", "temp"]`                |
+| `dashboard_on`      | `array`    | Information about associated dashboards.                                                  | `[]`                                        |
+| `database_name`     | `array`    | List of databases associated with the content.                                            | `["redis"]`                                 |
+
+---
+
+### **Example Filters**
+
+
+For more datails how to use filter see https://qdrant.tech/documentation/concepts/filtering/
+
+
+Here are examples of Qdrant-style filters based on `system_metadata` fields:
+
+#### **Filter by Tag**
+To filter results with a specific tag:
+```json
+{
+    "query_filter": {
+        "must": [
+            { "key": "system_metadata.tags_name", "match": { "value": "contract" }}
+        ]
+    }
+}
+```
+
+#### **Filter by Path**
+To filter results from a specific file path:
+```json
+{
+    "query_filter": {
+        "must": [
+            { "key": "system_metadata.path", "match": { "value": "/root/Passo_á_Passo_Imovel_Atualizado.md" }}
+        ]
+    }
+}
+```
+
+
+
+### **Combining Filters**
+
+To combine multiple conditions, use `must`, `should`, or `must_not` clauses:
+
+```json
+{
+    "query_filter": {
+        "must": [
+            { "key": "system_metadata.tags_name", "match": { "value": "contract" }},
+            { "key": "system_metadata.isEnabled", "match": { "value": true }}
+        ],
+        "must_not": [
+            { "key": "system_metadata.database_name", "match": { "value": "redis" }}
+        ]
+    }
+}
+```
 
