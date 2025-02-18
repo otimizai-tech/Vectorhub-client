@@ -375,3 +375,223 @@ To combine multiple conditions, use `must`, `should`, or `must_not` clauses:
 }
 ```
 
+---
+
+# (BR) Aplicação
+
+# **Documentação Simplificada da API**
+
+## **1. Inserindo Dados na API** (`/insert`)
+
+A API `/insert` é utilizada para enviar *chunks* de texto para armazenamento, vinculando pais e filhos através do campo `X_ID`.
+
+### **Estrutura do Payload**
+
+- `qdrant_payloads`: Lista de *child chunks* (filhos) contendo `X_ID`, que referencia o ID do *parent chunk* correspondente.
+- `redis_payloads`: Lista de *parent chunks* (pais) armazenados no banco de dados.
+
+### **Exemplo de Requisição**
+
+```python
+import requests
+import json
+
+token = "SEU_TOKEN"
+url = "http://localhost:8081/insert"
+headers = {"Authorization": f"Bearer {token}"}
+
+# Exemplo de dados a serem enviados
+payload = {
+    "filename": "exemplo.md",
+    "description": "",
+    "fileType": "general",
+    "path": "",
+    "collection_name": "ExemploCollection",
+}
+
+data = {
+    "qdrant_payloads": [
+        {
+            "id": "child-uuid-123",
+            "payload": {
+                "metadata": {},
+                "pageContent": "Conteúdo do chunk filho",
+                "X_ID": "parent-uuid-456"
+            }
+        }
+    ],
+    "redis_payloads": [
+        {
+            "id": "parent-uuid-456",
+            "payload": "Conteúdo do chunk pai"
+        }
+    ]
+}
+
+files = {"file": json.dumps(data, ensure_ascii=False, indent=0)}
+
+response = requests.post(url, data=payload, files=files, headers=headers)
+print(response.json())
+```
+
+### **Explicação**
+- `X_ID` dentro de `qdrant_payloads` cria uma ligação entre os chunks filhos e seus respectivos pais.
+- Cada *chunk* pai possui um `id` único e seu texto armazenado no Redis.
+- Os *chunks* filhos possuem o `X_ID` referenciando um pai e estão armazenados no Qdrant.
+
+---
+
+## **2. Consultando Dados na API** (`/query`)
+
+A API `/query` permite buscar informações na base, retornando chunks de texto relevantes com ligação entre pais e filhos através de `X_ID` e `edges`.
+
+### **Estrutura do Payload**
+
+- `collection_name`: Nome da coleção de dados.
+- `query`: Texto da pesquisa.
+- `limit_w_XID`: Número máximo de *chunks* filhos a serem retornados.
+- `limit_w_hits`: Número máximo de relações (*edges*) retornadas.
+- `with_payload`: Campos adicionais a serem incluídos na resposta.
+- `query_filter`: Filtros para restringir os resultados.
+
+### **Exemplo de Requisição**
+
+```python
+url = "http://localhost:8081/query"
+headers = {"Authorization": f"Bearer {token}"}
+
+query_payload = {
+    "collection_name": "ExemploCollection",
+    "query": "O que é um chunk?",
+    "limit_w_XID": 2,
+    "limit_w_hits": 4,
+    "return_hits": False,
+    "with_payload": ["pageContent"],
+    "query_filter": {
+        "must": [
+            {"key": "system_metadata.tags_name", "match": {"value": "general"}}
+        ]
+    }
+}
+
+response = requests.post(url, json=query_payload, headers=headers)
+print(response.json())
+```
+
+### **Exemplo de Resposta**
+
+```json
+{
+  "status": true,
+  "message": "query: teste",
+  "data": {
+    "states": {
+      "0": {
+        "payload": {
+          "metadata": {},
+          "pageContent": "Texto do chunk encontrado"
+        },
+        "system_metadata": {
+          "X_ID": ["parent-uuid-456"],
+          "path": "caminho/do/arquivo.md",
+          "filename": "arquivo.md",
+          "isEnabled": false,
+          "tags_name": ["general"],
+          "database_name": ["redis"]
+        }
+      }
+    },
+    "refs": {
+      "uuid-ref-1": 0,
+      "uuid-ref-2": 1
+    },
+    "edges": [
+      [0.07, 1, 0],
+      [0.06, 2, 0]
+    ]
+  }
+}
+```
+
+### **Explicação dos Campos**
+- **`X_ID`**: Indica que o chunk retornado está relacionado a um pai (se houver).
+- **`edges`**: Representa a conexão entre chunks filhos (*from*) e chunks pais (*to*), baseada em similaridade semântica.
+  - **`score`**: Quanto maior, mais similar o filho é ao pai.
+  - **`from`**: Index do chunk filho.
+  - **`to`**: Index do chunk pai.
+
+Exemplo:
+```json
+"edges": [
+  [0.07, 1, 0],
+  [0.06, 2, 0]
+]
+```
+Aqui, o chunk com index `1` (é um filho) está vinculado ao chunk com index `0` (pai), com similaridade `0.07`.
+
+---
+
+## **Conclusão**
+- Para **inserir** dados, use `/insert` com *chunks* pais no Redis e *chunks* filhos no Qdrant, ligando-os por `X_ID`.
+- Para **buscar** dados, use `/query`, onde os *chunks* relacionados serão retornados com `X_ID` e suas conexões podem ser analisadas pelos `edges`.
+
+Isso permite recuperar informações contextualizadas e estruturadas, garantindo uma busca eficiente e organizada.
+
+xxxxx
+
+
+## **Exemplo 2** (`/query`)
+
+
+### **Exemplo de Requisição utilizando cURL**
+
+```sh
+curl -X POST "http://localhost:8081/query" \
+     -H "Authorization: Bearer SEU_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+        "collection_name": "ExemploCollection",
+        "query": "O que é um chunk?",
+        "limit_wo_XID": 2,
+        "limit_w_XID": 2,
+        "with_payload": ["pageContent"]
+     }'
+```
+
+### **Como acessar os `pageContent`**
+
+O resultado da consulta retorna um dicionário JSON dentro da chave `data`. Os *chunks* estão dentro da chave `states`. Para extrair todos os textos de `pageContent`, basta iterar sobre os valores de `states`.
+
+#### **Exemplo de Extração em Python**
+
+```python
+import requests
+import json
+
+token = "SEU_TOKEN"
+url = "http://localhost:8081/query"
+headers = {"Authorization": f"Bearer {token}"}
+
+query_payload = {
+    "collection_name": "ExemploCollection",
+    "query": "O que é um chunk?",
+    "limit_wo_XID": 2,
+    "limit_w_XID": 2,
+    "with_payload": ["pageContent"]
+}
+
+response = requests.post(url, json=query_payload, headers=headers)
+data = response.json()
+
+# Extraindo todos os conteúdos de pageContent
+todos_os_textos = [item["payload"]["pageContent"] for item in data["data"]["states"].values()]
+
+print(todos_os_textos)
+```
+
+### **Conclusão**
+- Para **inserir** dados, use `/insert` com *chunks* pais no Redis e *chunks* filhos no Qdrant, ligando-os por `X_ID`.
+- Para **buscar** dados, use `/query`, especificando `limit_wo_XID` e `limit_w_XID` para controlar a busca por pais e filhos.
+- Utilize `with_payload: ["pageContent"]` para retornar apenas os textos dos *chunks*, sem metadados.
+- Os textos podem ser extraídos iterando sobre `data["states"]` no JSON retornado.
+
