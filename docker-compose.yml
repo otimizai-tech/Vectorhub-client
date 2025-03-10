@@ -8,8 +8,9 @@ services:
       EDGEDB_SERVER_USER: ${EDGEDB_USER}
       EDGEDB_SERVER_PASSWORD: ${EDGEDB_PASSWORD}
     volumes:
+      - edgedb_data:/var/lib/edgedb/data  # Usando volume do Docker
       - ./db/edgedb/dbschema:/dbschema
-      - ./db/edgedb/data:/var/lib/edgedb/data
+#      - ./db/edgedb/data:/var/lib/edgedb/data
       - ./db/edgedb/cli_config:/.config/edgedb
     ports:
       - "${EDGEDB_PORT}:5656"
@@ -50,8 +51,9 @@ services:
       EDGEDB_PORT: ${EDGEDB_PORT}
 
 
-
 volumes:
+  edgedb_data:  # Definição correta do volume
+    driver: local
   redis_data:
     driver: local
   qdrant_storage:
