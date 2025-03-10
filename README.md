@@ -1,133 +1,129 @@
-# VectorHub Client Setup Guide
+# Guia de Configuração do Cliente VectorHub
 
-This guide provides instructions to set up and run the `VectorHub` Docker Compose environment using the provided `vectorhub.tar` image file after cloning the repository.
+Este guia fornece instruções para configurar e executar o ambiente Docker Compose do `VectorHub` usando o arquivo de imagem `vectorhub.tar` fornecido após clonar o repositório.
 
-## Prerequisites
+## Pré-requisitos
 
-- **Docker**: Ensure Docker is installed on your system. [Docker Installation Guide](https://docs.docker.com/get-docker/).
-- **Docker Compose**: Make sure Docker Compose is installed. It usually comes bundled with Docker, but you can verify or install it using this [Docker Compose Installation Guide](https://docs.docker.com/compose/install/).
-- **Git**: Make sure Git is installed to clone the repository. If not, install it from [Git Installation](https://git-scm.com/downloads).
+- **Docker**: Certifique-se de que o Docker esteja instalado em seu sistema. [Guia de Instalação do Docker](https://docs.docker.com/get-docker/).
+- **Docker Compose**: Verifique se o Docker Compose está instalado. Geralmente, ele vem junto com o Docker, mas você pode verificar ou instalá-lo usando este [Guia de Instalação do Docker Compose](https://docs.docker.com/compose/install/).
+- **Git**: Certifique-se de que o Git esteja instalado para clonar o repositório. Caso contrário, instale-o em [Instalação do Git](https://git-scm.com/downloads).
 
-## Installation Steps
+## Passos para Instalação
 
-1. **Clone the Repository**
+1. **Clone o Repositório**
 
-   Clone the VectorHub Client repository to your local machine:
+   Clone o repositório do Cliente VectorHub para sua máquina local:
    ```bash
    git clone https://github.com/otimizai-tech/Vectorhub-client.git
    cd Vectorhub-client
    ```
 
-2. **Download the Docker Image**
+2. **Baixe a Imagem Docker**
 
-   Download the `vectorhub.tar` file from the latest GitHub release:
-   [Download vectorhub.tar](https://github.com/otimizai-tech/Vectorhub-client/releases/download/v0.2.4/vectorhub.tar)
+   Baixe o arquivo `vectorhub.tar` da versão mais recente do GitHub:
+   [Baixar vectorhub.tar](https://github.com/otimizai-tech/Vectorhub-client/releases/download/v0.2.4/vectorhub.tar)
 
-   Alternatively, you can use the command line to download the file directly:
+   Alternativamente, você pode usar a linha de comando para baixar o arquivo diretamente:
    ```bash
    wget https://github.com/otimizai-tech/Vectorhub-client/releases/download/v0.2.4/vectorhub.tar
    ```
 
-3. **Load the Docker Image**
+3. **Carregue a Imagem Docker**
 
-   Once the `vectorhub.tar` file is downloaded, load it into Docker using the following command:
+   Após baixar o arquivo `vectorhub.tar`, carregue-o no Docker usando o seguinte comando:
    ```bash
    docker load -i vectorhub.tar
    ```
 
-   This command imports the `otimizai/vectorhub-client:latest` image into your Docker environment.
+   Este comando importa a imagem `otimizai/vectorhub-client:latest` para o seu ambiente Docker.
 
-4. **Verify the Image**
+4. **Verifique a Imagem**
 
-   Confirm that the image has been successfully loaded by listing your Docker images:
+   Confirme se a imagem foi carregada com sucesso listando suas imagens Docker:
    ```bash
    docker images
    ```
 
-   You should see an image named `otimizai/vectorhub-client` with the `latest` tag in the list.
+   Você deverá ver uma imagem chamada `otimizai/vectorhub-client` com a tag `latest` na lista.
 
-5. **Run the Docker Compose Setup**
+5. **Execute a Configuração do Docker Compose**
 
-   Start the complete application stack using Docker Compose with the following command:
+   Inicie a pilha de aplicativos completa usando o Docker Compose com o seguinte comando:
    ```bash
    docker-compose up -d
    ```
 
-   This command will launch all the services defined in your `docker-compose.yml` file, including Redis, EdgeDB, Qdrant, and the VectorHub API.
+   Este comando iniciará todos os serviços definidos no seu arquivo `docker-compose.yml`, incluindo Redis, EdgeDB, Qdrant e a API VectorHub.
 
-6. **Access the Application**
 
-   Once the services are up and running, you can access the VectorHub application at:
+6. **Verifique a API e Acesse a Interface de Administração**
+
+   Após os serviços estarem em execução, você pode verificar se a API está rodando em:
    ```
    http://localhost:8081
    ```
 
-   or at the port specified in your `.env` file.
+   ou na porta especificada no seu arquivo `.env`.
 
-## Stopping the Services
+   Após verificar a API, vá para [vectorhub.tech/admin](http://vectorhub.tech/admin), insira a senha como variável `SECRET_KEY_ADMIN` especificada no arquivo `.env` e copie o token ao logar em `http://vectorhub.tech/admin`. Este token será usado como um Bearer Token para autenticação e acesso à interface UI do VectorHub.
 
-To stop all running services, use the following command:
+
+## Parando os Serviços
+
+Para parar todos os serviços em execução, use o seguinte comando:
 ```bash
 docker-compose down
 ```
 
-This command will gracefully stop and remove all containers defined in your Docker Compose setup.
+Este comando irá parar e remover todos os contêineres definidos na sua configuração do Docker Compose.
 
-## Troubleshooting
+## Solução de Problemas
 
-- **Port Conflicts**: If you encounter port conflicts, make sure that the ports specified in your `.env` file are not being used by other services on your machine.
-- **Image Not Found**: If Docker Compose fails to find the image, ensure that you have successfully downloaded and loaded the `vectorhub.tar` file as described in Steps 2 and 3.
-
-
+- **Conflitos de Porta**: Se você encontrar conflitos de porta, certifique-se de que as portas especificadas no seu arquivo `.env` não estejam sendo usadas por outros serviços na sua máquina.
+- **Imagem Não Encontrada**: Se o Docker Compose não conseguir encontrar a imagem, certifique-se de que você baixou e carregou o arquivo `vectorhub.tar` conforme descrito nos Passos 2 e 3.
 
 ---
 
-# **API Documentation for POST /query**
-
+# **Documentação da API para `POST /query`**
 
 ## **Endpoint**
 **`POST /query`**
 
-### **Authorization**
-The endpoint requires an **Authorization** header with a valid Bearer token. Example:
+### **Autorização**
+O endpoint requer um cabeçalho **Authorization** com um token Bearer válido. Exemplo:
 
 ```http
 Authorization: Bearer {TOKEN}
 ```
 
+## **Corpo da Requisição**
+O corpo da requisição deve estar no formato JSON. Abaixo estão as variáveis aceitas:
 
-## **Request Body**
-The request body should be in JSON format. Below are the variables accepted:
+### **Variáveis**
 
-### **Variables**
-
-| **Variable**       | **Type**   | **Required** | **Default** | **Description**                                                                                   |
-|---------------------|------------|--------------|-------------|---------------------------------------------------------------------------------------------------|
-| `query`            | `string`   | Yes          | `None`      | The search query string used to perform the main operation.                                      |
-| `collection_name`  | `string`   | Yes          | `None`      | The name of the collection to query from.                                                       |
-| `with_payload`     | `boolean`  | No           | `True`      | Determines if the response should include additional payloads associated with the query results. |
-| `score_threshold`  | `float`    | No           | `None`      | The minimum score a result must achieve to be included in the response.                         |
-| `limit_wo_XID`     | `integer`  | No           | `1`         | The maximum number of results to return when the `X_ID` attribute is not present in the query.  |
-| `limit_w_XID`      | `integer`  | No           | `1`         | The maximum number of results to return when the `X_ID` attribute is present in the query.      |
-| `limit_w_hits`     | `integer`  | No           | `10`        | The maximum number of results to return when the query matches items based on hits.             |
-| `query_filter`     | `object`   | No           | `None`      | Additional filtering criteria applied to the query to refine the results.                       |
+| **Variável**       | **Tipo**   | **Obrigatório** | **Padrão** | **Descrição**                                                                                   |
+|---------------------|------------|-----------------|------------|---------------------------------------------------------------------------------------------------|
+| `query`            | `string`   | Sim             | `None`     | A string de consulta de pesquisa usada para realizar a operação principal.                         |
+| `collection_name`  | `string`   | Sim             | `None`     | O nome da coleção para consultar.                                                                |
+| `with_payload`     | `boolean`  | Não             | `True`     | Determina se a resposta deve incluir payloads adicionais associados aos resultados da consulta. |
+| `score_threshold`  | `float`    | Não             | `None`     | A pontuação mínima que um resultado deve alcançar para ser incluído na resposta.                  |
+| `limit_wo_XID`     | `integer`  | Não             | `1`        | O número máximo de resultados a serem retornados quando o atributo `X_ID` não está presente na consulta. |
+| `limit_w_XID`      | `integer`  | Não             | `1`        | O número máximo de resultados a serem retornados quando o atributo `X_ID` está presente na consulta. |
+| `limit_w_hits`     | `integer`  | Não             | `10`       | O número máximo de resultados a serem retornados quando a consulta corresponde a itens baseados em hits. |
+| `query_filter`     | `object`   | Não             | `None`     | Critérios de filtragem adicionais aplicados à consulta para refinar os resultados.                |
 
 ---
 
+## **Exemplo de Requisição**
 
-
-
-## **Example Request**
-
-### **Request Header**
+### **Cabeçalho da Requisição**
 ```http
 POST {endpoint}/query 
 Authorization: Bearer YOUR_TOKEN
 Content-Type: application/json
 ```
 
-
-### **Request Body**
+### **Corpo da Requisição**
 ```json
 {
     "query": "teste",
@@ -145,56 +141,58 @@ Content-Type: application/json
 }
 ```
 
+### **Resultado**
 
-### **Result**
-
-When the `/query` endpoint is called successfully, it returns a structured JSON response. This document provides a detailed explanation of the response fields and their significance.
+Quando o endpoint `/query` é chamado com sucesso, ele retorna uma resposta JSON estruturada. Este documento fornece uma explicação detalhada dos campos de resposta e sua importância.
 
 ---
 
-### **Response Structure**
+### **Estrutura da Resposta**
 
 ```json
 {
   "status": true,
-  "message": "query: teste",
-  "data": {
-    "states": { ... },
-    "refs": { ... },
-    "edges": [ ... ]
-  }
+  "message": "query: <pergunta da consulta>",
+  "data": [
+    {
+      "id": "UUID",
+      "payload": {...},
+      "score": 0.67
+      },
+      ...
+  ]
 }
 ```
 
 ---
 
-### **Top-Level Fields**
+### **Campos de Nível Superior**
 
-| **Field**    | **Type**   | **Description**                                                                                           |
+| **Campo**    | **Tipo**   | **Descrição**                                                                                           |
 |--------------|------------|-----------------------------------------------------------------------------------------------------------|
-| `status`     | `boolean`  | Indicates whether the query was processed successfully.                                                   |
-| `message`    | `string`   | Provides context or feedback about the query operation, typically echoing the query or describing errors. |
-| `data`       | `object`   | Contains the core results of the semantic query, including `states`, `refs`, and `edges`.                |
+| `status`     | `boolean`  | Indica se a consulta foi processada com sucesso.                                                        |
+| `message`    | `string`   | Fornece contexto ou feedback sobre a operação de consulta, geralmente ecoando a consulta ou descrevendo erros. |
+| `data`       | `object`   | Contém os resultados principais da consulta semântica, incluindo `states`, `refs` e `edges`.           |
 
 ---
 
-### **Detailed Explanation of `data`**
+### **Explicação Detalhada de `data`**
 
 #### **1. `states`**
-- **Type:** Object
-- **Description:** Contains the actual results of the semantic search.
-- **Structure:** 
-  - Each key in `states` represents an index (based on `refs`).
-  - Each index contains:
-    - **`payload`**: Includes `metadata` and `pageContent`—the retrieved text or associated content.
-    - **`system_metadata`**: Additional details about the file or system context, such as:
-      - `X_ID`: UUIDs related to the content.
-      - `path`: The file or document path.
-      - `filename`: Name of the file.
-      - `isEnabled`: Indicates if the result is currently active or valid.
-      - `tags_name`: Tags categorizing the content.
-      - `database_name`: Related database names.
-- **Example:**
+- **Tipo:** Objeto
+- **Descrição:** Contém os resultados reais da pesquisa semântica.
+- **Estrutura:** 
+  - Cada chave em `states` representa um índice (baseado em `refs`).
+  - Cada índice contém:
+    - **`payload`**: Inclui `metadata` e `pageContent`—o texto recuperado ou conteúdo associado.
+    - **`system_metadata`**: Detalhes adicionais sobre o arquivo ou contexto do sistema, como:
+      - `X_ID`: UUIDs relacionados ao conteúdo.
+      - `path`: O caminho do arquivo ou documento.
+      - `filename`: Nome do arquivo.
+      - `isEnabled`: Indica se o resultado está atualmente ativo ou válido.
+      - `tags_name`: Tags categorizando o conteúdo.
+      - `database_name`: Nomes de bancos de dados relacionados.
+- **Exemplo:**
   ```json
   "states": {
     "0": {
@@ -217,39 +215,39 @@ When the `/query` endpoint is called successfully, it returns a structured JSON 
 ---
 
 #### **2. `refs`**
-- **Type:** Object
-- **Description:** Provides an index-to-UUID mapping for easier reference and interpretation of results.
-- **Example:**
+- **Tipo:** Objeto
+- **Descrição:** Fornece um mapeamento índice-para-UUID para facilitar a referência e interpretação dos resultados.
+- **Exemplo:**
   ```json
   "refs": {
     "65c073e0-bcaf-11ef-8362-836697a80014": 0,
     "65be218a-bcaf-11ef-8362-97215ca72835": 1
   }
   ```
-- **Usage:** Each UUID corresponds to an index in `states`, allowing you to locate detailed results.
+- **Uso:** Cada UUID corresponde a um índice em `states`, permitindo que você localize resultados detalhados.
 
 ---
 
 #### **3. `edges`**
-- **Type:** Array
-- **Description:** Represents connections between results (as indexed in `refs`) and their semantic relationships.
-- **Structure:**
-  - Each edge is represented as `[score, from, to]`:
-    - **`score`**: Semantic similarity value (higher indicates closer match).
-    - **`from`**: Index of the source node.
-    - **`to`**: Index of the target node.
-- **Example:**
+- **Tipo:** Array
+- **Descrição:** Representa conexões entre resultados (indexados em `refs`) e seus relacionamentos semânticos.
+- **Estrutura:**
+  - Cada aresta é representada como `[score, from, to]`:
+    - **`score`**: Valor de similaridade semântica (quanto maior, mais próximo da correspondência).
+    - **`from`**: Índice do nó de origem.
+    - **`to`**: Índice do nó de destino.
+- **Exemplo:**
   ```json
   "edges": [
     [0.07045968, 1, 0],
     [0.06461066, 2, 0]
   ]
   ```
-- **Usage:** Used to analyze relationships between results, particularly when clustering or exploring related items.
+- **Uso:** Usado para analisar relacionamentos entre resultados, particularmente ao agrupar ou explorar itens relacionados.
 
 ---
 
-### **Example of Full Response**
+### **Exemplo de Resposta Completa**
 
 ```json
 {
@@ -286,53 +284,154 @@ When the `/query` endpoint is called successfully, it returns a structured JSON 
 
 ---
 
-### **Summary**
+### **Resumo**
 
-- **`states`**: The primary search results with detailed information about each result.
-- **`refs`**: A mapping between UUIDs and their indices in `states`.
-- **`edges`**: Semantic connections between results, defined by similarity scores and indices.
+- **`states`**: Os resultados principais da pesquisa com informações detalhadas sobre cada resultado.
+- **`refs`**: Um mapeamento entre UUIDs e seus índices em `states`.
+- **`edges`**: Conexões semânticas entre resultados, definidas por pontuações de similaridade e índices.
+
+---
+## **Documentação da API para POST `/extensions/query`**
+
+## **Endpoint**
+**`POST /extensions/query`**
+
+### **Autorização**
+O endpoint requer um cabeçalho **Authorization** com um token Bearer válido. Exemplo:
+
+```http
+Authorization: Bearer {TOKEN}
+```
+
+## **Corpo da Requisição**
+O corpo da requisição deve estar no formato JSON. As variáveis aceitas são as mesmas que em `POST /query` mas possui uma chave adicional no qual possibilita retornar um número máximo de resultados em formato de lista.
 
 
-
+| **Variável**       | **Tipo**   | **Obrigatório** | **Padrão** | **Descrição**                                                                                   |
+|---------------------|------------|-----------------|------------|---------------------------------------------------------------------------------------------------|
+| `limit`            | `integer`  | Não             | `None`     | O número máximo de resultados a serem retornados, substituindo outros limites em `POST /query`.                   |
 
 ---
 
+## **Exemplo de Requisição**
 
-## Filter 
+### **Cabeçalho da Requisição**
+```http
+POST http://localhost:8081/extensions/query 
+Authorization: Bearer YOUR_TOKEN
+Content-Type: application/json
+```
 
-The available filtering features can be applied to both `system_metadata` and `metadata`. 
+### **Corpo da Requisição**
+```json
+{
+    "query": "teste",
+    "collection_name": "teste",
+    "with_payload": true,
+    "score_threshold": 0.5,
+    "limit": 10,
+    "query_filter": {
+        "must": [
+            { "key": "system_metadata.tags_name", "match": { "value": "contract" }}
+        ]
+    }
+}
+```
 
-- **`system_metadata`**: These are default, predefined variables provided by VectorHub, offering standardized attributes for filtering.  
-- **`metadata`**: These are custom variables specified by the user, allowing for tailored filtering criteria based on user-defined data within VectorHub. 
+### **Resultado**
 
+Quando o endpoint http://localhost:8081/extensions/query é chamado com sucesso, ele retorna uma resposta JSON estruturada. Este documento fornece uma explicação detalhada dos campos de resposta e sua importância.
 
+---
 
-### **Available Fields in `system_metadata`**
+### **Estrutura da Resposta**
 
+```json
+{
+  "status": true,
+  "message": "query: <pergunta da consulta>",
+  "data": [
+    {
+      "id": "UUID",
+      "payload": {...},
+      "score": 0.67
+    },
+    ...
+  ]
+}
+```
 
+---
 
-| **Field**           | **Type**    | **Description**                                                                            | **Example**                                 |
+### **Campos de Nível Superior**
+
+| **Campo**    | **Tipo**   | **Descrição**                                                                                           |
+|--------------|------------|-----------------------------------------------------------------------------------------------------------|
+| `status`     | `boolean`  | Indica se a consulta foi processada com sucesso.                                                        |
+| `message`    | `string`   | Fornece contexto ou feedback sobre a operação de consulta, geralmente ecoando a consulta ou descrevendo erros. |
+| `data`       | `array`    | Contém os resultados principais da consulta semântica, incluindo `id`, `payload` e `score`.           |
+
+---
+
+### **Exemplo de Resposta Completa**
+
+```json
+{
+  "status": true,
+  "message": "query: teste",
+  "data": [
+    {
+      "id": "UUID",
+      "payload": {
+        "metadata": {},
+        "pageContent": "LIBERAÇÃO Cadastral..."
+      },
+      "score": 0.67
+    },
+    ...
+  ]
+}
+```
+
+---
+
+### **Resumo**
+
+- **`status`**: Indica o sucesso da consulta.
+- **`message`**: Fornece feedback sobre a consulta.
+- **`data`**: Contém os resultados da consulta, incluindo `id`, `payload` e `score`.
+
+---
+
+# Filtros de Consulta
+
+Os recursos de filtragem disponíveis podem ser aplicados tanto a `system_metadata` quanto a `metadata`.
+
+- **`system_metadata`**: São variáveis padrão, predefinidas, fornecidas pelo VectorHub, oferecendo atributos padronizados para filtragem.
+- **`metadata`**: São variáveis personalizadas especificadas pelo usuário, permitindo critérios de filtragem personalizados com base em dados definidos pelo usuário dentro do VectorHub.
+
+### **Campos Disponíveis em `system_metadata`**
+
+| **Campo**           | **Tipo**    | **Descrição**                                                                            | **Exemplo**                                 |
 |----------------------|------------|--------------------------------------------------------------------------------------------|---------------------------------------------|
-| `X_ID`              | `array`    | List of UUIDs associated with the result.                                                  | `["65bdf61a-bcaf-11ef-8362-67a57d644ab2"]` |
-| `path`              | `string`   | File or document path where the result is stored.                                          | `"/root/Passo_á_Passo_Imovel_Atualizado.md"` |
-| `filename`          | `string`   | Name of the file containing the result.                                                   | `"Passo_á_Passo_Imovel_Atualizado.md"`      |
-| `isEnabled`         | `boolean`  | Indicates if the result is active or valid.                                                | `false`                                     |
-| `tags_name`         | `array`    | List of tags categorizing the content.                                                     | `["new", "general", "temp"]`                |
-| `dashboard_on`      | `array`    | Information about associated dashboards.                                                  | `[]`                                        |
-| `database_name`     | `array`    | List of databases associated with the content.                                            | `["redis"]`                                 |
+| `X_ID`              | `array`    | Lista de UUIDs associados ao resultado.                                                  | `["65bdf61a-bcaf-11ef-8362-67a57d644ab2"]` |
+| `path`              | `string`   | Caminho do arquivo ou documento onde o resultado está armazenado.                          | `"/root/Passo_á_Passo_Imovel_Atualizado.md"` |
+| `filename`          | `string`   | Nome do arquivo contendo o resultado.                                                   | `"Passo_á_Passo_Imovel_Atualizado.md"`      |
+| `isEnabled`         | `boolean`  | Indica se o resultado está ativo ou válido.                                                | `false`                                     |
+| `tags_name`         | `array`    | Lista de tags categorizando o conteúdo.                                                     | `["new", "general", "temp"]`                |
+| `dashboard_on`      | `array`    | Informações sobre dashboards associados.                                                  | `[]`                                        |
+| `database_name`     | `array`    | Lista de bancos de dados associados ao conteúdo.                                            | `["redis"]`                                 |
 
 ---
 
-### **Example Filters**
+### **Exemplos de Filtros**
 
+Para mais detalhes sobre como usar filtros, consulte [https://qdrant.tech/documentation/concepts/filtering/](https://qdrant.tech/documentation/concepts/filtering/)
 
-For more datails how to use filter see https://qdrant.tech/documentation/concepts/filtering/
+Aqui estão exemplos de filtros no estilo Qdrant baseados em campos `system_metadata`:
 
-
-Here are examples of Qdrant-style filters based on `system_metadata` fields:
-
-#### **Filter by Tag**
-To filter results with a specific tag:
+#### **Filtrar por Tag**
+Para filtrar resultados com uma tag específica:
 ```json
 {
     "query_filter": {
@@ -343,8 +442,8 @@ To filter results with a specific tag:
 }
 ```
 
-#### **Filter by Path**
-To filter results from a specific file path:
+#### **Filtrar por Caminho**
+Para filtrar resultados de um caminho de arquivo específico:
 ```json
 {
     "query_filter": {
@@ -355,11 +454,9 @@ To filter results from a specific file path:
 }
 ```
 
+### **Combinando Filtros**
 
-
-### **Combining Filters**
-
-To combine multiple conditions, use `must`, `should`, or `must_not` clauses:
+Para combinar múltiplas condições, use as cláusulas `must`, `should` ou `must_not`:
 
 ```json
 {
@@ -377,7 +474,6 @@ To combine multiple conditions, use `must`, `should`, or `must_not` clauses:
 
 ---
 
-# (BR) Aplicação
 
 # **Documentação Simplificada da API**
 
@@ -537,11 +633,7 @@ Aqui, o chunk com index `1` (é um filho) está vinculado ao chunk com index `0`
 
 Isso permite recuperar informações contextualizadas e estruturadas, garantindo uma busca eficiente e organizada.
 
-xxxxx
-
-
 ## **Exemplo 2** (`/query`)
-
 
 ### **Exemplo de Requisição utilizando cURL**
 
@@ -594,4 +686,3 @@ print(todos_os_textos)
 - Para **buscar** dados, use `/query`, especificando `limit_wo_XID` e `limit_w_XID` para controlar a busca por pais e filhos.
 - Utilize `with_payload: ["pageContent"]` para retornar apenas os textos dos *chunks*, sem metadados.
 - Os textos podem ser extraídos iterando sobre `data["states"]` no JSON retornado.
-

@@ -3,5 +3,5 @@
 vectorhub.tar
 
 db/edgedb/data
-db/qdrant
+db/qdrant/*
 __workdir__/*
