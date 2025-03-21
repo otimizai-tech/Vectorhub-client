@@ -1,0 +1,71 @@
+version: "3.8"
+
+services:
+  edgedb:
+    image: edgedb/edgedb:5
+    environment:
+      EDGEDB_SERVER_TLS_CERT_MODE: generate_self_signed #Deu pepino
+      EDGEDB_SERVER_SECURITY: ${EDGEDB_SERVER_SECURITY}
+      EDGEDB_SERVER_ADMIN_UI: enabled #Deu pepino
+      EDGEDB_SERVER_USER: ${EDGEDB_USER}
+      EDGEDB_SERVER_PASSWORD: minhasenhasegura #Deu pepino
+    volumes:
+      - edgedb_data:/var/lib/edgedb/data
+    ports:
+      - "5656:5656"
+    networks:
+      - internal-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    networks:
+      - internal-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  api:
+    image: startregistry.azurecr.io/app:latest
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./__workdir__:/app/__workdir__
+    depends_on:
+      - qdrant
+      - edgedb
+    networks:
+      - internal-network
+      - external-network
+    env_file:
+      - .env
+    environment:
+      TYPE_ENV: deploy #Deu pepino
+      REDIS_HOST: redis
+      QDRANT_HOST: qdrant
+      EDGEDB_HOST: edgedb
+      SECRET_KEY_ADMIN: ${SECRET_KEY_ADMIN}
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  edgedb_data:
+  qdrant_storage:
+  api_data:
+
+networks:
+  internal-network:
+    driver: overlay
+  external-network:
+    driver: overlay
