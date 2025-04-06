@@ -27,7 +27,8 @@ services:
       - internal-network
 
   api:
-    image: otimizai/vectorhub-client:latest
+    image: otimizai.azurecr.io/vectorhubclient:latest
+    # image: otimizai/vectorhub-client:latest
     ports:
       - "${API_CLIENT_BACKEND_PORT}:8081"
     volumes:

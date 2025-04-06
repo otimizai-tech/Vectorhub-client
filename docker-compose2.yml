@@ -35,7 +35,7 @@ services:
         condition: on-failure
 
   api:
-    image: startregistry.azurecr.io/app:latest
+    image: otimizai.azurecr.io/vectorhubclient:latest
     ports:
       - "8081:8081"
     volumes:
