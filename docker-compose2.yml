@@ -2,13 +2,13 @@ version: "3.8"
 
 services:
   edgedb:
-    image: edgedb/edgedb:5
+    image: geldata/gel:6.4
     environment:
-      EDGEDB_SERVER_TLS_CERT_MODE: generate_self_signed #Deu pepino
-      EDGEDB_SERVER_SECURITY: ${EDGEDB_SERVER_SECURITY}
-      EDGEDB_SERVER_ADMIN_UI: enabled #Deu pepino
-      EDGEDB_SERVER_USER: ${EDGEDB_USER}
-      EDGEDB_SERVER_PASSWORD: minhasenhasegura #Deu pepino
+      GEL_SERVER_TLS_CERT_MODE: generate_self_signed #Deu pepino
+      GEL_SERVER_SECURITY: ${GEL_SERVER_SECURITY}
+      GEL_SERVER_ADMIN_UI: enabled #Deu pepino
+      GEL_SERVER_USER: ${GEL_USER}
+      GEL_SERVER_PASSWORD: minhasenhasegura #Deu pepino
     volumes:
       - edgedb_data:/var/lib/edgedb/data
     ports:
@@ -52,7 +52,7 @@ services:
       TYPE_ENV: deploy #Deu pepino
       REDIS_HOST: redis
       QDRANT_HOST: qdrant
-      EDGEDB_HOST: edgedb
+      GEL_HOST: edgedb
       SECRET_KEY_ADMIN: ${SECRET_KEY_ADMIN}
     deploy:
       replicas: 2

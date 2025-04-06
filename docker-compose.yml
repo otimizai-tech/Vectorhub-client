@@ -1,19 +1,19 @@
 services:
   edgedb:
-    image: edgedb/edgedb:5
+    image: geldata/gel:6.4
     environment:
-      EDGEDB_SERVER_TLS_CERT_MODE: ${EDGEDB_SERVER_TLS_CERT_MODE}
-      EDGEDB_SERVER_SECURITY: ${EDGEDB_SERVER_SECURITY}
-      EDGEDB_SERVER_ADMIN_UI: ${EDGEDB_SERVER_ADMIN_UI}
-      EDGEDB_SERVER_USER: ${EDGEDB_USER}
-      EDGEDB_SERVER_PASSWORD: ${EDGEDB_PASSWORD}
+      GEL_SERVER_TLS_CERT_MODE: ${GEL_SERVER_TLS_CERT_MODE}
+      GEL_SERVER_SECURITY: ${GEL_SERVER_SECURITY}
+      GEL_SERVER_ADMIN_UI: ${GEL_SERVER_ADMIN_UI}
+      GEL_SERVER_USER: ${GEL_USER}
+      GEL_SERVER_PASSWORD: ${GEL_PASSWORD}
     volumes:
       - edgedb_data:/var/lib/edgedb/data  # Usando volume do Docker
       - ./db/edgedb/dbschema:/dbschema
 #      - ./db/edgedb/data:/var/lib/edgedb/data
       - ./db/edgedb/cli_config:/.config/edgedb
     ports:
-      - "${EDGEDB_PORT}:5656"
+      - "${GEL_PORT}:5656"
     networks:
       - internal-network
 
@@ -47,8 +47,8 @@ services:
       REDIS_PORT: ${REDIS_PORT}
       QDRANT_HOST: qdrant
       QDRANT_PORT: ${QDRANT_PORT}
-      EDGEDB_HOST: edgedb
-      EDGEDB_PORT: ${EDGEDB_PORT}
+      GEL_HOST: edgedb
+      GEL_PORT: ${GEL_PORT}
 
 
 volumes:
