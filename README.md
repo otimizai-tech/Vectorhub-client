@@ -17,8 +17,27 @@ Este guia fornece instruções para configurar e executar o ambiente Docker Comp
    git clone https://github.com/otimizai-tech/Vectorhub-client.git
    cd Vectorhub-client
    ```
+2 **Baixe a Imagem Docker**
+    Faça o login no azure pelo terminal utilizando as credenciais do login temporario(solicite estas credenciais)
 
-2. **Baixe a Imagem Docker**
+3. **Carregue a Imagem Docker**
+
+    Logado no ambiente da azure carregue a imagem com o comando:
+
+       ```bash
+   docker pull otimizai.azurecr.io/vectorhubclient:latest
+   ```
+
+4. **Verifique a Imagem**
+
+   Confirme se a imagem foi carregada com sucesso listando suas imagens Docker:
+   ```bash
+   docker images
+   ```
+
+   Você deverá ver uma imagem chamada `otimizai.azurecr.io/vectorhubclient` com a tag `latest` na lista.
+
+2.2 **Baixe a Imagem Docker(segunda opção)**
 
    Baixe o arquivo `vectorhub.tar` da versão mais recente do GitHub:
    [Baixar vectorhub.tar](https://github.com/otimizai-tech/Vectorhub-client/releases/download/v0.2.4/vectorhub.tar)
@@ -28,7 +47,7 @@ Este guia fornece instruções para configurar e executar o ambiente Docker Comp
    wget https://github.com/otimizai-tech/Vectorhub-client/releases/download/v0.2.4/vectorhub.tar
    ```
 
-3. **Carregue a Imagem Docker**
+3.2 **Carregue a Imagem Docker(segunda opção)**
 
    Após baixar o arquivo `vectorhub.tar`, carregue-o no Docker usando o seguinte comando:
    ```bash
@@ -37,7 +56,7 @@ Este guia fornece instruções para configurar e executar o ambiente Docker Comp
 
    Este comando importa a imagem `otimizai/vectorhub-client:latest` para o seu ambiente Docker.
 
-4. **Verifique a Imagem**
+4.2 **Verifique a Imagem(segunda opção)**
 
    Confirme se a imagem foi carregada com sucesso listando suas imagens Docker:
    ```bash
