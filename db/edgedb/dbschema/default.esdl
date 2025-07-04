@@ -5,6 +5,9 @@ module default {
 
 
   type Collection {
+    required X_alias: str {
+      default:= <str>uuid_generate_v4();
+    } 
 
     required name: str;
     description: str;
@@ -50,6 +53,10 @@ module default {
 
 
   type Prompt {
+    required X_alias: str {
+      default:= <str>uuid_generate_v4();
+    } 
+
     name: str;
 
     tags: str;
@@ -114,11 +121,16 @@ module default {
 
 
 
-
   type Folder {
+    required X_alias: str {
+      default:= <str>uuid_generate_v4();
+    } 
+
     isEnabled: bool {
       default:= true
     }
+
+
     required name: str;
     description: str;
     path: str;
@@ -179,6 +191,10 @@ module default {
 
 
   type File {
+    required X_alias: str {
+      default:= <str>uuid_generate_v4();
+    } 
+
     isEnabled: bool {
       default:= true
     }
@@ -248,6 +264,10 @@ module default {
 
 
   type DataBaseHub {
+    required X_alias: str {
+      default:= <str>uuid_generate_v4();
+    } 
+
     name: str;
     emb_model: str;
 
@@ -256,7 +276,9 @@ module default {
 
     access policy acess_collection_s
     allow select
-    using (true);
+    using (
+      global current_collection_id ?= assert_single(.<databases[is Collection].id)
+      or global current_collection_name ?= assert_single(.<databases[is Collection].name));
 
     access policy acess_collection_d
     allow delete
@@ -266,8 +288,10 @@ module default {
 
     access policy acess_collection_u
     allow update
-    using (true);
-
+    using (
+      global current_collection_id ?= assert_single(.<databases[is Collection].id)
+      or global current_collection_name ?= assert_single(.<databases[is Collection].name));
+      
     access policy acess_collection_i
     allow insert
     using (.id ?= .id);
@@ -285,11 +309,18 @@ module default {
 
 
   type Chunk {
-    multi database: DataBaseHub;
+    required X_alias: str {
+      default:= <str>uuid_generate_v4();
+    } 
+
+    multi database: DataBaseHub {
+      on target delete allow;
+  };
 
     content: str {
       default:= ""
     }
+
     contentType: str;
 
     multi tags: Tag {
@@ -307,6 +338,11 @@ module default {
     multi X_ref: Chunk {
       on target delete allow;
   };
+
+  modified: datetime {
+    default:= datetime_current();
+    rewrite insert, update using ( datetime_current());
+  }
 
 
 
@@ -347,6 +383,10 @@ module default {
 
 
   type Tag {
+    required X_alias: str {
+      default:= <str>uuid_generate_v4();
+    } 
+
     name: str;
     multi chunks:= .<tags[is Chunk];
 
@@ -385,6 +425,10 @@ module default {
   }
 
   type Dashbord {
+    required X_alias: str {
+      default:= <str>uuid_generate_v4();
+    } 
+
     name: str {
       default:= "dashboard"
     };
@@ -436,9 +480,8 @@ module default {
   }
 
   type Chat {
+
     history: str;
-
-
 
     access policy acess_collection_s
     allow select
@@ -478,15 +521,17 @@ FUNCTION  parse_chunks(data: Chunk) -> json
 USING EdgeQL $$
 select <json>(
     select data {
-      ID:= data.id,
+      ID_a:= data.id,
+      ID:= data.X_alias,
+      modified:= data.modified,
       payload:= (<json>(
         pageContent:= data.content ?? "",
         system_metadata:= {
             dashboard_on:= DISTINCT data.tags.<tags[is Dashbord].name,
             database_name:= data.database.name,
             tags_name:=  data.tags.name,
-            X_ID := data.X_ref.id, 
-            as_X_ID := data.<X_ref[is Chunk].id, 
+            X_ID := data.X_ref.X_alias, 
+            as_X_ID := data.<X_ref[is Chunk].X_alias, 
             path:=  ( select DISTINCT  (data.<chunks[is File].path) limit 1 ),
             filename:=  ( select DISTINCT (data.<chunks[is File].name) limit 1 ),
             isEnabled := data.isEnabled,
