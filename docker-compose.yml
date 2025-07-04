@@ -8,7 +8,7 @@ services:
       GEL_SERVER_USER: ${EDGEDB_USER}
       GEL_SERVER_PASSWORD: ${EDGEDB_PASSWORD}
     volumes:
-      - edgedb_data:/var/lib/edgedb/data  # Usando volume do Docker
+      - edgedb_data:/var/lib/gel/data  # Usando volume do Docker
       - ./db/edgedb/dbschema:/dbschema
 #      - ./db/edgedb/data:/var/lib/edgedb/data
       - ./db/edgedb/cli_config:/.config/edgedb
