@@ -1,55 +1,69 @@
+using extension pgcrypto;
+
+
 module default {
 
   global current_collection_id: uuid;
   global current_collection_name: str;
 
 
-  type Collection {
-    required X_alias: str {
-      default:= <str>uuid_generate_v4();
-    } 
+type Alias_name {
+  required name: str { constraint exclusive; }          # alias único globalmente
+  required link collection: Collection {
+    on target delete delete source;                     # apagar a collection apaga o alias
+  }
+}
 
-    required name: str;
-    description: str;
-
-    multi dashbord: Dashbord {
-      on target delete allow;
-      on source delete delete target;
-  };
-    multi tags: Tag {
-      on target delete allow;
-      on source delete delete target;
-  };
-    multi folders: Folder {
-      on target delete allow;
-      on source delete delete target;
-  };
-    multi files: File {
-      on target delete allow;
-      on source delete delete target;
+type Collection {
+  required X_alias: str {
+    default := <str>uuid_generate_v4();
   }
 
-    multi chats: Chat {
-      on target delete allow;
-      on source delete delete target;
+  required name: str {
+    # nome da collection também é único
+    constraint exclusive;
   }
-    multi prompts: Prompt {
-      on target delete allow;
-      on source delete delete target;
+
+  description: str;
+  multi dashbord: Dashbord {
+    on target delete allow;
+    on source delete delete target;
   }
-   multi databases: DataBaseHub {
-      on target delete allow;
-      on source delete delete target;
-   }
-   multi chunks: Chunk {
-      on target delete allow;
-      on source delete delete target;
-   }
-
-    metadata: json;
-
-
+  multi tags: Tag {
+    on target delete allow;
+    on source delete delete target;
   }
+  multi folders: Folder {
+    on target delete allow;
+    on source delete delete target;
+  }
+  multi files: File {
+    on target delete allow;
+    on source delete delete target;
+  }
+  multi chats: Chat {
+    on target delete allow;
+    on source delete delete target;
+  }
+  multi prompts: Prompt {
+    on target delete allow;
+    on source delete delete target;
+  }
+  multi databases: DataBaseHub {
+    on target delete allow;
+    on source delete delete target;
+  }
+  multi chunks: Chunk {
+    on target delete allow;
+    on source delete delete target;
+  }
+
+  metadata: json;
+
+  # backlink só para consulta: todos os aliases desta Collection
+  multi aliases := .<collection[is Alias_name];
+}
+
 
 
   type Prompt {
@@ -108,7 +122,7 @@ module default {
     using (.id ?= .id);
 
 
-    trigger insert_in_collection after insert for each do (
+    trigger insert_in_collection after insert for all do (
     update Collection 
     filter .id = global current_collection_id
     set {
@@ -169,7 +183,7 @@ module default {
     using (.id ?= .id);
 
 
-    trigger insert_in_collection after insert for each do (
+    trigger insert_in_collection after insert for all do (
     update Collection 
     filter .id = global current_collection_id
     set {
@@ -241,7 +255,7 @@ module default {
     using (.id ?= .id);
 
 
-    trigger insert_in_collection after insert for each do (
+    trigger insert_in_collection after insert for all do (
     update Collection 
     filter .id = global current_collection_id
     set {
@@ -296,7 +310,7 @@ module default {
     allow insert
     using (.id ?= .id);
 
-    trigger insert_in_collection after insert for each do (
+    trigger insert_in_collection after insert for all do (
     update Collection 
     filter .id = global current_collection_id
     set {
@@ -341,9 +355,16 @@ module default {
 
   modified: datetime {
     default:= datetime_current();
-    rewrite insert, update using ( datetime_current());
+    rewrite insert using ( datetime_current());
   }
 
+  # Hash do conteúdo atual (bytes). Recalcula automático em insert/update.
+  required content_hash: bytes {
+    default := ext::pgcrypto::digest((.content ?? ''), 'sha256');
+    rewrite insert, update using (
+      ext::pgcrypto::digest((.content ?? ''), 'sha256')
+    );
+  }
 
 
 
@@ -370,7 +391,7 @@ module default {
     using (.id ?= .id);
 
 
-    trigger insert_in_collection after insert for each do (
+    trigger insert_in_collection after insert for all do (
     update Collection 
     filter .id = global current_collection_id
     set {
@@ -378,6 +399,108 @@ module default {
     }
   );
 
+ # << NOVO >>: guarda APENAS a última versão anterior via upsert
+  trigger keep_prev_version
+  after update for each 
+  when ( __new__.content_hash != __old__.content_hash) 
+  do (
+
+        insert ChunkVersion {
+          trash:=      (__old__.<chunk[is ChunkVersion]),
+          ts           := datetime_current(),
+          content      := (__old__.content ?? ''),
+          content_hash := __old__.content_hash,
+          contentType  := __old__.contentType,
+          payload      := __old__.payload,
+          chunk        := __new__   # << AQUI ESTAVA SEU ERRO
+        }
+
+    )
+}
+
+
+
+
+
+# # -------------------------
+# # CHUNKVERSION (última versão anterior somente)
+# # -------------------------
+type ChunkVersion {
+
+  required ts: datetime { default := datetime_current(); }
+  content: str;
+  content_hash: bytes;
+  contentType: str;
+  payload: json { default := to_json("{}"); }
+  # Queremos: no máximo 1 ChunkVersion apontando para cada Chunk
+  single chunk: Chunk {
+    on target delete delete source;
+    # constraint exclusive
+  }
+
+  multi trash: ChunkVersion {
+    on source delete delete target;
+    on target delete allow;
+  };
+
+  trigger erase
+  after insert for all 
+  do (
+        # with
+        # a:= (select count(ChunkVersion)),
+        # b:= ( update bucket set {log_count_ChunkVersion:= a})
+
+        delete __new__.trash
+
+    # select {
+    #   # _cont:= (update bucket set { log_count_ChunkVersion :=( select count(ChunkVersion))} ),
+    #   del:= (
+    #     )
+    #   }
+    )
+
+  # access policy cv_select
+  # allow select
+  # using (
+  #   global current_collection_id ?= assert_single(.chunk.<chunks[is Collection].id)
+  #   or global current_collection_name ?= assert_single(.chunk.<chunks[is Collection].name)
+  # );
+
+  # access policy cv_write
+  # allow insert, update
+  # using (
+  #   global current_collection_id ?= assert_single(.chunk.<chunks[is Collection].id)
+  #   or global current_collection_name ?= assert_single(.chunk.<chunks[is Collection].name)
+  # );
+}
+
+type bucket {
+  log_count_ChunkVersion : int16; #{rewrite insert, update using (select count(ChunkVersion))}
+
+  trigger erase
+  after update for all 
+  when (__new__.log_count_ChunkVersion > 2)
+  do (
+    with
+    a:= (select ChunkVersion order by .ts desc offset 1 limit 2).id,
+
+    delete ChunkVersion filter not .id in a
+    )
+
+}
+
+
+
+
+type ApprovedToken {
+    # required property not_before -> datetime;     # quando passa a valer
+    # optional property reason -> str;
+    # index on (.user);
+    required jti : uuid ;
+    required token : str;
+    required issued_at : datetime { default := datetime_current(); };
+    required expires_at : datetime;     # quando deixa de valer
+    # required property revoked -> bool { default := false; }
   }
 
 
@@ -414,13 +537,38 @@ module default {
     using (.id ?= .id);
 
 
-    trigger insert_in_collection after insert for each do (
+    trigger insert_in_collection after insert for all do (
     update Collection 
     filter .id = global current_collection_id
     set {
       tags += __new__
     }
   );
+  #   # NOVO gatilho: deduplicar por (name, Collection) após insert/update
+  # trigger dedupe_tags after insert, update for each do (
+  #   with
+  #     # todas as tags com o mesmo nome nessa coleção
+  #     same := (
+  #       select Tag
+  #       filter .name = __new__.name
+  #       # and coll in .<tags[is Collection]
+  #       # order by .id
+  #     ),
+
+  #     keep := __new__,
+  #     dups := (select same filter .id != keep.id),
+
+  #   # 1) reatribui chunks das duplicadas para a tag mantida
+  #   c1 := (
+  #     update dups.chunks
+  #     set {
+  #       tags += keep
+  #     }
+  #   ),
+
+  #   # 2) apaga as duplicadas
+  #   delete Tag filter .id in (select dups.id)
+  # );
 
   }
 
@@ -469,7 +617,7 @@ module default {
     using (.id ?= .id);
 
 
-    trigger insert_in_collection after insert for each do (
+    trigger insert_in_collection after insert for all do (
     update Collection 
     filter .id = global current_collection_id
     set {
@@ -506,7 +654,7 @@ module default {
     using (.id ?= .id);
 
 
-    trigger insert_in_collection after insert for each do (
+    trigger insert_in_collection after insert for all do (
     update Collection 
     filter .id = global current_collection_id
     set {
@@ -515,6 +663,8 @@ module default {
   );
 
   }
+
+
 
 
 FUNCTION  parse_chunks(data: Chunk) -> json

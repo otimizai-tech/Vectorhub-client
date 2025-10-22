@@ -30,7 +30,7 @@ services:
     image: otimizai.azurecr.io/vectorhubclient:latest
     # image: otimizai/vectorhub-client:latest
     ports:
-      - "${API_CLIENT_BACKEND_PORT}:8081"
+      - "8081:8081"
     volumes:
       - ./__workdir__:/app/__workdir__
     depends_on:
