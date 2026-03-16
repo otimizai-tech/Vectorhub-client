@@ -500,7 +500,9 @@ type ApprovedToken {
     required token : str;
     required issued_at : datetime { default := datetime_current(); };
     required expires_at : datetime;     # quando deixa de valer
-    # required property revoked -> bool { default := false; }
+    algorithm -> str; 
+    name_type -> str { default := ""; }
+    revoked -> bool { default := false; }
   }
 
 
@@ -666,6 +668,23 @@ type ApprovedToken {
 
 
 
+type User {
+  required email: str ;
+  required name: str;
+  required provider: str;
+  required provider_user_id: str;
+  role: str { default := 'user'; };
+  is_active: bool { default := true; };
+  created_at: datetime { default := datetime_current(); };
+  last_login: datetime { default := datetime_current(); };
+  avatar_url: str;
+  constraint exclusive on ((.provider, .provider_user_id));
+  
+  multi tokens: ApprovedToken {
+      on target delete allow;
+      on source delete delete target;
+  };
+}
 
 FUNCTION  parse_chunks(data: Chunk) -> json
 USING EdgeQL $$
