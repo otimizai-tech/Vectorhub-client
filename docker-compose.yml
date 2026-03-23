@@ -8,14 +8,14 @@ services:
       GEL_SERVER_USER: ${GEL_USER}
       GEL_SERVER_PASSWORD: ${GEL_PASSWORD}
     volumes:
-      - edgedb_data:/var/lib/gel/data  # Usando volume do Docker
       - ./db/edgedb/dbschema:/dbschema
-#      - ./db/edgedb/data:/var/lib/edgedb/data
+      - ./db/edgedb/data:/var/lib/edgedb/data
       - ./db/edgedb/cli_config:/.config/edgedb
     ports:
       - "${GEL_PORT}:5656"
     networks:
       - internal-network
+
 
   qdrant:
     image: "qdrant/qdrant:latest"
@@ -26,10 +26,14 @@ services:
     networks:
       - internal-network
 
+
   api:
-    image: otimizai.azurecr.io/vectorhubclient:latest
-    # image: otimizai/vectorhub-client:latest
+    image: otimizai.azurecr.io/vectorhubclient:v2.4.1
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.v2
     ports:
+      # - "${API_CLIENT_BACKEND_PORT}:8081"
       - "8081:8081"
     volumes:
       - ./__workdir__:/app/__workdir__
@@ -42,7 +46,12 @@ services:
     env_file:
       - .env
     environment:
-      TYPE_ENV: ${TYPE_ENV}
+      PORT: 8081
+      TYPE_ENV: deploy
+      # FRONTEND_APP_ORIGIN: https://vectorhub.tech
+      # TYPE_ENV: dev_container
+      SESSION_COOKIE_SAMESITE: None
+      SESSION_COOKIE_SECURE: "true"
       SECRET_KEY_ADMIN: ${SECRET_KEY_ADMIN}
       REDIS_HOST: redis
       REDIS_PORT: 5050
@@ -50,7 +59,6 @@ services:
       QDRANT_PORT: ${QDRANT_PORT}
       EDGEDB_HOST: edgedb
       EDGEDB_PORT: ${GEL_PORT}
-      EDGEDB_PASSWORD: ${GEL_PASSWORD}
 
 
 volumes:
@@ -68,3 +76,6 @@ networks:
     driver: bridge
   external-network:
     driver: bridge
+
+
+# ------------------------------------------------------------------------------------------------------
