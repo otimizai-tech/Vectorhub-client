@@ -1,14 +1,16 @@
-CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
+CREATE MIGRATION m1vemsrmdd2a2pug7ijm4u6m2iugmyh2l3cbew5uezhgl5uqeuphga
     ONTO initial
 {
+  CREATE EXTENSION pgcrypto VERSION '1.3';
   CREATE GLOBAL default::current_collection_id -> std::uuid;
   CREATE GLOBAL default::current_collection_name -> std::str;
   CREATE TYPE default::DataBaseHub {
       CREATE PROPERTY name: std::str;
       CREATE ACCESS POLICY acess_collection_i
           ALLOW INSERT USING ((.id ?= .id));
-      CREATE ACCESS POLICY acess_collection_s
-          ALLOW SELECT USING (true);
+      CREATE REQUIRED PROPERTY X_alias: std::str {
+          SET default := (<std::str>std::uuid_generate_v4());
+      };
       CREATE PROPERTY config: std::json;
       CREATE PROPERTY contentType: std::str;
       CREATE PROPERTY emb_model: std::str;
@@ -17,35 +19,58 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
       CREATE MULTI LINK X_ref: default::Chunk {
           ON TARGET DELETE ALLOW;
       };
-      CREATE MULTI LINK database: default::DataBaseHub;
+      CREATE MULTI LINK database: default::DataBaseHub {
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE REQUIRED PROPERTY X_alias: std::str {
+          SET default := (<std::str>std::uuid_generate_v4());
+      };
       CREATE PROPERTY content: std::str {
           SET default := '';
       };
       CREATE PROPERTY isEnabled: std::bool {
           SET default := false;
       };
+      CREATE PROPERTY modified: std::datetime {
+          SET default := (std::datetime_current());
+          CREATE REWRITE
+              INSERT 
+              USING (std::datetime_current());
+      };
       CREATE PROPERTY payload: std::json {
           SET default := (std::to_json('{}'));
       };
-      CREATE ACCESS POLICY acess_collection_i
-          ALLOW INSERT USING ((.id ?= .id));
       CREATE PROPERTY contentType: std::str;
-      CREATE PROPERTY old_id: std::str;
-  };
-  CREATE TYPE default::Chat {
+      CREATE REQUIRED PROPERTY content_hash: std::bytes {
+          SET default := (ext::pgcrypto::digest((.content ?? ''), 'sha256'));
+          CREATE REWRITE
+              INSERT 
+              USING (ext::pgcrypto::digest((.content ?? ''), 'sha256'));
+          CREATE REWRITE
+              UPDATE 
+              USING (ext::pgcrypto::digest((.content ?? ''), 'sha256'));
+      };
       CREATE ACCESS POLICY acess_collection_i
           ALLOW INSERT USING ((.id ?= .id));
-      CREATE PROPERTY history: std::str;
+      CREATE PROPERTY old_id: std::str;
   };
   CREATE TYPE default::Tag {
       CREATE PROPERTY name: std::str;
       CREATE ACCESS POLICY acess_collection_i
           ALLOW INSERT USING ((.id ?= .id));
+      CREATE REQUIRED PROPERTY X_alias: std::str {
+          SET default := (<std::str>std::uuid_generate_v4());
+      };
   };
   ALTER TYPE default::Chunk {
       CREATE MULTI LINK tags: default::Tag {
           ON TARGET DELETE ALLOW;
       };
+  };
+  CREATE TYPE default::Chat {
+      CREATE ACCESS POLICY acess_collection_i
+          ALLOW INSERT USING ((.id ?= .id));
+      CREATE PROPERTY history: std::str;
   };
   CREATE TYPE default::Dashbord {
       CREATE MULTI LINK tags: default::Tag {
@@ -60,9 +85,42 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
       };
       CREATE ACCESS POLICY acess_collection_i
           ALLOW INSERT USING ((.id ?= .id));
+      CREATE REQUIRED PROPERTY X_alias: std::str {
+          SET default := (<std::str>std::uuid_generate_v4());
+      };
       CREATE PROPERTY description: std::str {
           SET default := 'Dashboard';
       };
+  };
+  CREATE TYPE default::Collection {
+      CREATE MULTI LINK chunks: default::Chunk {
+          ON SOURCE DELETE DELETE TARGET;
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE MULTI LINK dashbord: default::Dashbord {
+          ON SOURCE DELETE DELETE TARGET;
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE MULTI LINK databases: default::DataBaseHub {
+          ON SOURCE DELETE DELETE TARGET;
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE REQUIRED PROPERTY name: std::str {
+          CREATE CONSTRAINT std::exclusive;
+      };
+      CREATE MULTI LINK tags: default::Tag {
+          ON SOURCE DELETE DELETE TARGET;
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE MULTI LINK chats: default::Chat {
+          ON SOURCE DELETE DELETE TARGET;
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE REQUIRED PROPERTY X_alias: std::str {
+          SET default := (<std::str>std::uuid_generate_v4());
+      };
+      CREATE PROPERTY description: std::str;
+      CREATE PROPERTY metadata: std::json;
   };
   CREATE TYPE default::File {
       CREATE MULTI LINK chunks: default::Chunk {
@@ -70,7 +128,6 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
           ON TARGET DELETE ALLOW;
       };
       CREATE REQUIRED PROPERTY name: std::str;
-      CREATE PROPERTY path: std::str;
       CREATE PROPERTY isEnabled: std::bool {
           SET default := true;
       };
@@ -89,13 +146,23 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
       };
       CREATE ACCESS POLICY acess_collection_i
           ALLOW INSERT USING ((.id ?= .id));
+      CREATE REQUIRED PROPERTY X_alias: std::str {
+          SET default := (<std::str>std::uuid_generate_v4());
+      };
       CREATE PROPERTY description: std::str;
+  };
+  ALTER TYPE default::Collection {
+      CREATE MULTI LINK files: default::File {
+          ON SOURCE DELETE DELETE TARGET;
+          ON TARGET DELETE ALLOW;
+      };
   };
   CREATE TYPE default::Folder {
       CREATE MULTI LINK files: default::File {
           ON SOURCE DELETE DELETE TARGET;
           ON TARGET DELETE ALLOW;
       };
+      CREATE PROPERTY path: std::str;
       CREATE PROPERTY isEnabled: std::bool {
           SET default := true;
       };
@@ -114,83 +181,54 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
           ON SOURCE DELETE DELETE TARGET;
           ON TARGET DELETE ALLOW;
       };
+      CREATE REQUIRED PROPERTY X_alias: std::str {
+          SET default := (<std::str>std::uuid_generate_v4());
+      };
       CREATE PROPERTY description: std::str;
       CREATE REQUIRED PROPERTY name: std::str;
-      CREATE PROPERTY path: std::str;
   };
-  CREATE TYPE default::Prompt {
-      CREATE MULTI LINK X_dashbord: default::Dashbord {
-          ON TARGET DELETE ALLOW;
-      };
-      CREATE MULTI LINK X_file: default::File {
-          ON TARGET DELETE ALLOW;
-      };
-      CREATE MULTI LINK X_folder: default::Folder {
-          ON TARGET DELETE ALLOW;
-      };
-      CREATE ACCESS POLICY acess_collection_i
-          ALLOW INSERT USING ((.id ?= .id));
-      CREATE MULTI LINK X_prompt: default::Prompt {
-          ON TARGET DELETE ALLOW;
-      };
-      CREATE MULTI LINK X_tag: default::Tag {
-          ON TARGET DELETE ALLOW;
-      };
-      CREATE PROPERTY content: std::str;
-      CREATE PROPERTY description: std::str;
-      CREATE PROPERTY metadata: std::json;
-      CREATE PROPERTY name: std::str;
-      CREATE PROPERTY tags: std::str;
-  };
-  CREATE TYPE default::Collection {
-      CREATE MULTI LINK chunks: default::Chunk {
-          ON SOURCE DELETE DELETE TARGET;
-          ON TARGET DELETE ALLOW;
-      };
-      CREATE MULTI LINK dashbord: default::Dashbord {
-          ON SOURCE DELETE DELETE TARGET;
-          ON TARGET DELETE ALLOW;
-      };
-      CREATE MULTI LINK files: default::File {
-          ON SOURCE DELETE DELETE TARGET;
-          ON TARGET DELETE ALLOW;
-      };
-      CREATE MULTI LINK tags: default::Tag {
-          ON SOURCE DELETE DELETE TARGET;
-          ON TARGET DELETE ALLOW;
-      };
-      CREATE REQUIRED PROPERTY name: std::str;
-      CREATE MULTI LINK chats: default::Chat {
-          ON SOURCE DELETE DELETE TARGET;
-          ON TARGET DELETE ALLOW;
-      };
-      CREATE MULTI LINK databases: default::DataBaseHub {
-          ON SOURCE DELETE DELETE TARGET;
-          ON TARGET DELETE ALLOW;
-      };
+  ALTER TYPE default::Collection {
       CREATE MULTI LINK folders: default::Folder {
           ON SOURCE DELETE DELETE TARGET;
           ON TARGET DELETE ALLOW;
       };
-      CREATE MULTI LINK prompts: default::Prompt {
-          ON SOURCE DELETE DELETE TARGET;
-          ON TARGET DELETE ALLOW;
-      };
-      CREATE PROPERTY description: std::str;
-      CREATE PROPERTY metadata: std::json;
+  };
+  ALTER TYPE default::File {
+      CREATE PROPERTY path := ({(((SELECT
+          .<files[IS default::Folder].path 
+      LIMIT
+          1
+      ) ++ '/') ++ .name)});
+      CREATE ACCESS POLICY acess_collection_d
+          ALLOW DELETE USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<files[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<files[IS default::Collection].name))));
+      CREATE ACCESS POLICY acess_collection_s
+          ALLOW SELECT USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<files[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<files[IS default::Collection].name))));
+      CREATE ACCESS POLICY acess_collection_u
+          ALLOW UPDATE USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<files[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<files[IS default::Collection].name))));
+      CREATE TRIGGER insert_in_collection
+          AFTER INSERT 
+          FOR ALL DO (UPDATE
+              default::Collection
+          FILTER
+              (.id = GLOBAL default::current_collection_id)
+          SET {
+              files += __new__
+          });
   };
   CREATE FUNCTION default::parse_chunks(data: default::Chunk) ->  std::json USING (SELECT
       <std::json>(SELECT
           data {
-              ID := data.id,
+              ID_a := data.id,
+              ID := data.X_alias,
+              modified := data.modified,
               payload := (<std::json>(
                   pageContent := (data.content ?? ''),
                   system_metadata := {
                       dashboard_on := DISTINCT (data.tags.<tags[IS default::Dashbord].name),
                       database_name := data.database.name,
                       tags_name := data.tags.name,
-                      X_ID := data.X_ref.id,
-                      as_X_ID := data.<X_ref[IS default::Chunk].id,
+                      X_ID := data.X_ref.X_alias,
+                      as_X_ID := data.<X_ref[IS default::Chunk].X_alias,
                       path := (SELECT
                           DISTINCT (data.<chunks[IS default::File].path) 
                       LIMIT
@@ -217,7 +255,7 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
           ALLOW UPDATE USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<chats[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<chats[IS default::Collection].name))));
       CREATE TRIGGER insert_in_collection
           AFTER INSERT 
-          FOR EACH DO (UPDATE
+          FOR ALL DO (UPDATE
               default::Collection
           FILTER
               (.id = GLOBAL default::current_collection_id)
@@ -234,7 +272,7 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
           ALLOW UPDATE USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<chunks[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<chunks[IS default::Collection].name))));
       CREATE TRIGGER insert_in_collection
           AFTER INSERT 
-          FOR EACH DO (UPDATE
+          FOR ALL DO (UPDATE
               default::Collection
           FILTER
               (.id = GLOBAL default::current_collection_id)
@@ -251,7 +289,7 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
           ALLOW UPDATE USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<dashbord[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<dashbord[IS default::Collection].name))));
       CREATE TRIGGER insert_in_collection
           AFTER INSERT 
-          FOR EACH DO (UPDATE
+          FOR ALL DO (UPDATE
               default::Collection
           FILTER
               (.id = GLOBAL default::current_collection_id)
@@ -262,33 +300,18 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
   ALTER TYPE default::DataBaseHub {
       CREATE ACCESS POLICY acess_collection_d
           ALLOW DELETE USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<databases[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<databases[IS default::Collection].name))));
+      CREATE ACCESS POLICY acess_collection_s
+          ALLOW SELECT USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<databases[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<databases[IS default::Collection].name))));
       CREATE ACCESS POLICY acess_collection_u
           ALLOW UPDATE USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<databases[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<databases[IS default::Collection].name))));
       CREATE TRIGGER insert_in_collection
           AFTER INSERT 
-          FOR EACH DO (UPDATE
+          FOR ALL DO (UPDATE
               default::Collection
           FILTER
               (.id = GLOBAL default::current_collection_id)
           SET {
               databases += __new__
-          });
-  };
-  ALTER TYPE default::File {
-      CREATE ACCESS POLICY acess_collection_d
-          ALLOW DELETE USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<files[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<files[IS default::Collection].name))));
-      CREATE ACCESS POLICY acess_collection_s
-          ALLOW SELECT USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<files[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<files[IS default::Collection].name))));
-      CREATE ACCESS POLICY acess_collection_u
-          ALLOW UPDATE USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<files[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<files[IS default::Collection].name))));
-      CREATE TRIGGER insert_in_collection
-          AFTER INSERT 
-          FOR EACH DO (UPDATE
-              default::Collection
-          FILTER
-              (.id = GLOBAL default::current_collection_id)
-          SET {
-              files += __new__
           });
   };
   ALTER TYPE default::Folder {
@@ -300,13 +323,46 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
           ALLOW UPDATE USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<folders[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<folders[IS default::Collection].name))));
       CREATE TRIGGER insert_in_collection
           AFTER INSERT 
-          FOR EACH DO (UPDATE
+          FOR ALL DO (UPDATE
               default::Collection
           FILTER
               (.id = GLOBAL default::current_collection_id)
           SET {
               folders += __new__
           });
+  };
+  CREATE TYPE default::Prompt {
+      CREATE MULTI LINK X_dashbord: default::Dashbord {
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE MULTI LINK X_file: default::File {
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE MULTI LINK X_folder: default::Folder {
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE ACCESS POLICY acess_collection_i
+          ALLOW INSERT USING ((.id ?= .id));
+      CREATE MULTI LINK X_prompt: default::Prompt {
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE MULTI LINK X_tag: default::Tag {
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE REQUIRED PROPERTY X_alias: std::str {
+          SET default := (<std::str>std::uuid_generate_v4());
+      };
+      CREATE PROPERTY content: std::str;
+      CREATE PROPERTY description: std::str;
+      CREATE PROPERTY metadata: std::json;
+      CREATE PROPERTY name: std::str;
+      CREATE PROPERTY tags: std::str;
+  };
+  ALTER TYPE default::Collection {
+      CREATE MULTI LINK prompts: default::Prompt {
+          ON SOURCE DELETE DELETE TARGET;
+          ON TARGET DELETE ALLOW;
+      };
   };
   ALTER TYPE default::Prompt {
       CREATE ACCESS POLICY acess_collection_d
@@ -317,7 +373,7 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
           ALLOW UPDATE USING (((GLOBAL default::current_collection_id ?= std::assert_single(.<prompts[IS default::Collection].id)) OR (GLOBAL default::current_collection_name ?= std::assert_single(.<prompts[IS default::Collection].name))));
       CREATE TRIGGER insert_in_collection
           AFTER INSERT 
-          FOR EACH DO (UPDATE
+          FOR ALL DO (UPDATE
               default::Collection
           FILTER
               (.id = GLOBAL default::current_collection_id)
@@ -335,12 +391,124 @@ CREATE MIGRATION m1z3r6lelgguvs76dlmtfzdhqwjba77lzcnp66hfoh6axglqdumdza
       CREATE MULTI LINK chunks := (.<tags[IS default::Chunk]);
       CREATE TRIGGER insert_in_collection
           AFTER INSERT 
-          FOR EACH DO (UPDATE
+          FOR ALL DO (UPDATE
               default::Collection
           FILTER
               (.id = GLOBAL default::current_collection_id)
           SET {
               tags += __new__
           });
+  };
+  CREATE TYPE default::ChunkVersion {
+      CREATE SINGLE LINK chunk: default::Chunk {
+          ON TARGET DELETE DELETE SOURCE;
+      };
+      CREATE MULTI LINK trash: default::ChunkVersion {
+          ON SOURCE DELETE DELETE TARGET;
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE PROPERTY content: std::str;
+      CREATE PROPERTY contentType: std::str;
+      CREATE PROPERTY content_hash: std::bytes;
+      CREATE PROPERTY payload: std::json {
+          SET default := (std::to_json('{}'));
+      };
+      CREATE REQUIRED PROPERTY ts: std::datetime {
+          SET default := (std::datetime_current());
+      };
+      CREATE TRIGGER erase
+          AFTER INSERT 
+          FOR ALL DO (DELETE
+              __new__.trash
+          );
+  };
+  ALTER TYPE default::Chunk {
+      CREATE TRIGGER keep_prev_version
+          AFTER UPDATE 
+          FOR EACH 
+              WHEN ((__new__.content_hash != __old__.content_hash))
+          DO (INSERT
+              default::ChunkVersion
+              {
+                  trash := __old__.<chunk[IS default::ChunkVersion],
+                  ts := std::datetime_current(),
+                  content := (__old__.content ?? ''),
+                  content_hash := __old__.content_hash,
+                  contentType := __old__.contentType,
+                  payload := __old__.payload,
+                  chunk := __new__
+              });
+  };
+  CREATE TYPE default::Alias_name {
+      CREATE REQUIRED LINK collection: default::Collection {
+          ON TARGET DELETE DELETE SOURCE;
+      };
+      CREATE REQUIRED PROPERTY name: std::str {
+          CREATE CONSTRAINT std::exclusive;
+      };
+  };
+  ALTER TYPE default::Collection {
+      CREATE MULTI LINK aliases := (.<collection[IS default::Alias_name]);
+  };
+  CREATE TYPE default::ApprovedToken {
+      CREATE PROPERTY algorithm: std::str;
+      CREATE REQUIRED PROPERTY expires_at: std::datetime;
+      CREATE REQUIRED PROPERTY issued_at: std::datetime {
+          SET default := (std::datetime_current());
+      };
+      CREATE REQUIRED PROPERTY jti: std::uuid;
+      CREATE PROPERTY name_type: std::str {
+          SET default := '';
+      };
+      CREATE PROPERTY revoked: std::bool {
+          SET default := false;
+      };
+      CREATE REQUIRED PROPERTY token: std::str;
+  };
+  CREATE TYPE default::User {
+      CREATE MULTI LINK tokens: default::ApprovedToken {
+          ON SOURCE DELETE DELETE TARGET;
+          ON TARGET DELETE ALLOW;
+      };
+      CREATE REQUIRED PROPERTY provider: std::str;
+      CREATE REQUIRED PROPERTY provider_user_id: std::str;
+      CREATE CONSTRAINT std::exclusive ON ((.provider, .provider_user_id));
+      CREATE PROPERTY avatar_url: std::str;
+      CREATE PROPERTY created_at: std::datetime {
+          SET default := (std::datetime_current());
+      };
+      CREATE REQUIRED PROPERTY email: std::str;
+      CREATE PROPERTY is_active: std::bool {
+          SET default := true;
+      };
+      CREATE PROPERTY last_login: std::datetime {
+          SET default := (std::datetime_current());
+      };
+      CREATE REQUIRED PROPERTY name: std::str;
+      CREATE PROPERTY role: std::str {
+          SET default := 'user';
+      };
+  };
+  CREATE TYPE default::bucket {
+      CREATE PROPERTY log_count_ChunkVersion: std::int16;
+      CREATE TRIGGER erase
+          AFTER UPDATE 
+          FOR ALL 
+              WHEN ((__new__.log_count_ChunkVersion > 2))
+          DO (WITH
+              a := 
+                  ((SELECT
+                      default::ChunkVersion ORDER BY
+                          .ts DESC
+                  OFFSET
+                      1
+                  LIMIT
+                      2
+                  )).id
+          DELETE
+              default::ChunkVersion
+          FILTER
+              NOT ((.id IN a))
+          );
   };
 };
