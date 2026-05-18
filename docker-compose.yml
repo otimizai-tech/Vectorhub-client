@@ -28,7 +28,7 @@ services:
 
 
   api:
-    image: otimizai.azurecr.io/vectorhubclient:v2.4.1
+    image: vectorhub:2.4.5
     # build:
     #   context: .
     #   dockerfile: Dockerfile.v2
@@ -47,8 +47,8 @@ services:
       - .env
     environment:
       PORT: 8081
-      TYPE_ENV: deploy
       # FRONTEND_APP_ORIGIN: https://vectorhub.tech
+      TYPE_ENV: deploy
       # TYPE_ENV: dev_container
       SESSION_COOKIE_SAMESITE: None
       SESSION_COOKIE_SECURE: "true"

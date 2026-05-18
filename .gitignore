@@ -1,6 +1,7 @@
 .env
 
 vectorhub.tar
+vectorhub.tar.gz
 
 db/edgedb/data
 db/qdrant/*
